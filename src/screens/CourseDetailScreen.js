@@ -113,6 +113,19 @@ const CourseDetailScreen = ({ route, navigation }) => {
     });
   };
 
+  // Saniyeyi dakika:saniye formatına çevir
+  const formatDuration = (seconds) => {
+    if (!seconds) return null;
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    if (mins >= 60) {
+      const hours = Math.floor(mins / 60);
+      const remainingMins = mins % 60;
+      return `${hours}s ${remainingMins}dk`;
+    }
+    return secs > 0 ? `${mins}dk ${secs}sn` : `${mins}dk`;
+  };
+
   if (isLoading) {
     return (
       <SafeAreaView style={styles.container}>
@@ -183,7 +196,7 @@ const CourseDetailScreen = ({ route, navigation }) => {
         <View style={styles.content}>
           {/* Course Title & Basic Info */}
           <Text style={styles.title}>{course.title}</Text>
-          <Text style={styles.description}>{course.description}</Text>
+          <Text style={styles.description}>{course.shortDescription || course.fullDescription}</Text>
 
           {/* Course Stats */}
           <View style={styles.statsContainer}>
@@ -259,7 +272,7 @@ const CourseDetailScreen = ({ route, navigation }) => {
                           key={lesson.id || lessonIndex}
                           style={styles.lessonItem}
                           onPress={() => handleLessonPress(lessonWithVideo, allLessons)}
-                          disabled={!isEnrolled}
+                          disabled={!isEnrolled && !lesson.isFree}
                         >
                           <View style={styles.lessonNumber}>
                             <Text style={styles.lessonNumberText}>
@@ -270,13 +283,20 @@ const CourseDetailScreen = ({ route, navigation }) => {
                             <Text style={styles.lessonTitle} numberOfLines={2}>
                               {lesson.title}
                             </Text>
-                            {lesson.durationMinutes && (
-                              <Text style={styles.lessonDuration}>
-                                {lesson.durationMinutes} dk
-                              </Text>
-                            )}
+                            <View style={styles.lessonMeta}>
+                              {lesson.durationSeconds && (
+                                <Text style={styles.lessonDuration}>
+                                  {formatDuration(lesson.durationSeconds)}
+                                </Text>
+                              )}
+                              {lesson.isFree && (
+                                <View style={styles.freeBadge}>
+                                  <Text style={styles.freeBadgeText}>Ücretsiz</Text>
+                                </View>
+                              )}
+                            </View>
                           </View>
-                          {isEnrolled ? (
+                          {isEnrolled || lesson.isFree ? (
                             <Text style={styles.playIcon}>▶</Text>
                           ) : (
                             <Text style={styles.lockIcon}>🔒</Text>
@@ -291,10 +311,10 @@ const CourseDetailScreen = ({ route, navigation }) => {
           )}
 
           {/* What You'll Learn */}
-          {course.learningOutcomes && course.learningOutcomes.length > 0 && (
+          {course.whatYouWillLearn && course.whatYouWillLearn.length > 0 && (
             <View style={styles.learningOutcomesContainer}>
               <Text style={styles.sectionTitle}>What You'll Learn</Text>
-              {course.learningOutcomes.map((outcome, index) => (
+              {course.whatYouWillLearn.map((outcome, index) => (
                 <View key={index} style={styles.outcomeItem}>
                   <Text style={styles.outcomeIcon}>✓</Text>
                   <Text style={styles.outcomeText}>{outcome}</Text>
@@ -317,23 +337,29 @@ const CourseDetailScreen = ({ route, navigation }) => {
           )}
 
           {/* Instructor Info */}
-          {course.instructor && (
+          {course.instructorName && (
             <View style={styles.instructorContainer}>
               <Text style={styles.sectionTitle}>Instructor</Text>
               <View style={styles.instructorCard}>
-                <View style={styles.instructorAvatar}>
-                  <Text style={styles.instructorAvatarText}>
-                    {course.instructor.firstName?.[0]}
-                    {course.instructor.lastName?.[0]}
-                  </Text>
-                </View>
+                {course.instructorImageUrl ? (
+                  <Image
+                    source={{ uri: course.instructorImageUrl }}
+                    style={styles.instructorAvatarImage}
+                  />
+                ) : (
+                  <View style={styles.instructorAvatar}>
+                    <Text style={styles.instructorAvatarText}>
+                      {course.instructorName?.split(' ').map(n => n[0]).join('').slice(0, 2)}
+                    </Text>
+                  </View>
+                )}
                 <View style={styles.instructorInfo}>
                   <Text style={styles.instructorName}>
-                    {course.instructor.firstName} {course.instructor.lastName}
+                    {course.instructorName}
                   </Text>
-                  {course.instructor.title && (
+                  {course.instructorBio && (
                     <Text style={styles.instructorTitle}>
-                      {course.instructor.title}
+                      {course.instructorBio}
                     </Text>
                   )}
                 </View>
@@ -554,9 +580,26 @@ const styles = StyleSheet.create({
     color: COLORS.text,
     marginBottom: 2,
   },
+  lessonMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 2,
+  },
   lessonDuration: {
     fontSize: SIZES.body3,
     color: COLORS.textLight,
+  },
+  freeBadge: {
+    backgroundColor: COLORS.success + '20',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    marginLeft: 8,
+  },
+  freeBadgeText: {
+    fontSize: 10,
+    color: COLORS.success,
+    fontWeight: '600',
   },
   playIcon: {
     fontSize: 16,
@@ -620,6 +663,12 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primary,
     justifyContent: 'center',
     alignItems: 'center',
+    marginRight: SIZES.padding,
+  },
+  instructorAvatarImage: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
     marginRight: SIZES.padding,
   },
   instructorAvatarText: {

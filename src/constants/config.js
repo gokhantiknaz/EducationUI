@@ -1,8 +1,9 @@
 // API Base URL - Backend sunucu adresinizi buraya yazın
 // Yerel ağ IP adresi kullanarak Android emülatörden erişim
 // export const API_BASE_URL = 'https://172.16.6.113:52564/api'; // Yerel IP adresi
-export const API_BASE_URL = 'http://10.0.2.2:52564/api';// Android emülatör için (alternatif)
+// export const API_BASE_URL = 'http://10.0.2.2:52564/api';// Android emülatör için (alternatif)
 //export const API_BASE_URL = 'http://localhost:52564/api'; // iOS Simulator için
+export const API_BASE_URL='http://192.168.1.98:52563/api';
 // export const API_BASE_URL = 'https://your-production-api.com/api'; // Production için
 
 // API Endpoints - Backend'e uygun endpoint'ler

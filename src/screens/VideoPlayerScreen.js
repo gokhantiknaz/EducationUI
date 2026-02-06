@@ -23,10 +23,11 @@ const VideoPlayerScreen = ({ navigation, route }) => {
   const { lesson, courseId, courseName, lessons = [] } = route.params || {};
 
   const [isFullScreen, setIsFullScreen] = useState(false);
-  const [isPlaying, setIsPlaying] = useState(true);
+  const [isPlaying, setIsPlaying] = useState(false); // Başlangıçta false - kullanıcı başlatsın
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+  const [isReady, setIsReady] = useState(false);
   const [currentLessonIndex, setCurrentLessonIndex] = useState(0);
   const [currentLesson, setCurrentLesson] = useState(lesson);
 
@@ -92,8 +93,21 @@ const VideoPlayerScreen = ({ navigation, route }) => {
     return null;
   };
 
-  // Test için örnek YouTube video ID
-  const videoId = getYoutubeVideoId(currentLesson?.videoUrl) || 'dQw4w9WgXcQ'; // Örnek video
+  // Video ID - önce videoId alanını kontrol et, sonra URL'den çıkar
+  const videoId = currentLesson?.videoId || getYoutubeVideoId(currentLesson?.videoUrl) || 'oPpnCh7InLY';
+
+  // Saniyeyi formatla
+  const formatDuration = (seconds) => {
+    if (!seconds) return '';
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    if (mins >= 60) {
+      const hours = Math.floor(mins / 60);
+      const remainingMins = mins % 60;
+      return `${hours}s ${remainingMins}dk`;
+    }
+    return secs > 0 ? `${mins}:${secs.toString().padStart(2, '0')}` : `${mins}dk`;
+  };
 
   const enterFullScreen = async () => {
     setIsFullScreen(true);
@@ -115,20 +129,37 @@ const VideoPlayerScreen = ({ navigation, route }) => {
     }
   };
 
+  const onReady = useCallback(() => {
+    setIsLoading(false);
+    setIsReady(true);
+    console.log('YouTube Player Ready');
+  }, []);
+
   const onStateChange = useCallback((state) => {
-    if (state === 'ended') {
-      setIsPlaying(false);
-      handleLessonComplete();
-    }
-    if (state === 'playing') {
-      setIsLoading(false);
-      setIsPlaying(true);
-    }
-    if (state === 'paused') {
-      setIsPlaying(false);
-    }
-    if (state === 'buffering') {
-      setIsLoading(true);
+    console.log('YouTube State:', state);
+    switch (state) {
+      case 'ended':
+        setIsPlaying(false);
+        setIsLoading(false);
+        handleLessonComplete();
+        break;
+      case 'playing':
+        setIsLoading(false);
+        setIsPlaying(true);
+        break;
+      case 'paused':
+        setIsPlaying(false);
+        setIsLoading(false);
+        break;
+      case 'buffering':
+        // Sadece video başladıktan sonra buffering göster
+        // İlk yüklemede gösterme
+        break;
+      case 'unstarted':
+        setIsLoading(false);
+        break;
+      default:
+        break;
     }
   }, []);
 
@@ -148,7 +179,9 @@ const VideoPlayerScreen = ({ navigation, route }) => {
       const nextLesson = lessons[currentLessonIndex + 1];
       setCurrentLessonIndex(currentLessonIndex + 1);
       setCurrentLesson(nextLesson);
-      setIsPlaying(true);
+      setIsPlaying(false);
+      setIsReady(false);
+      setIsLoading(true);
       setCurrentTime(0);
     } else {
       showSuccessToast('Tüm dersler tamamlandı!', 'Kurs Bitti');
@@ -160,7 +193,9 @@ const VideoPlayerScreen = ({ navigation, route }) => {
       const prevLesson = lessons[currentLessonIndex - 1];
       setCurrentLessonIndex(currentLessonIndex - 1);
       setCurrentLesson(prevLesson);
-      setIsPlaying(true);
+      setIsPlaying(false);
+      setIsReady(false);
+      setIsLoading(true);
       setCurrentTime(0);
     }
   };
@@ -168,7 +203,9 @@ const VideoPlayerScreen = ({ navigation, route }) => {
   const selectLesson = (lessonItem, index) => {
     setCurrentLessonIndex(index);
     setCurrentLesson(lessonItem);
-    setIsPlaying(true);
+    setIsPlaying(false);
+    setIsReady(false);
+    setIsLoading(true);
     setCurrentTime(0);
   };
 
@@ -189,14 +226,30 @@ const VideoPlayerScreen = ({ navigation, route }) => {
           width={SCREEN_HEIGHT}
           play={isPlaying}
           videoId={videoId}
+          onReady={onReady}
           onChangeState={onStateChange}
+          forceAndroidAutoplay={true}
+          initialPlayerParams={{
+            preventFullScreen: false,
+            controls: true,
+            modestbranding: true,
+            rel: false,
+          }}
           webViewProps={{
+            allowsInlineMediaPlayback: true,
+            mediaPlaybackRequiresUserAction: false,
+            javaScriptEnabled: true,
+            domStorageEnabled: true,
+            allowsFullscreenVideo: true,
+            mixedContentMode: 'always',
+            originWhitelist: ['*'],
             injectedJavaScript: `
               var element = document.getElementsByClassName('container')[0];
-              element.style.position = 'unset';
+              if(element) element.style.position = 'unset';
               true;
             `,
           }}
+          onError={(error) => console.log('YouTube Error:', error)}
         />
 
         {/* Full Screen Controls Overlay */}
@@ -254,13 +307,43 @@ const VideoPlayerScreen = ({ navigation, route }) => {
           width={SCREEN_WIDTH}
           play={isPlaying}
           videoId={videoId}
+          onReady={onReady}
           onChangeState={onStateChange}
+          forceAndroidAutoplay={true}
+          initialPlayerParams={{
+            preventFullScreen: false,
+            controls: true,
+            modestbranding: true,
+            rel: false,
+          }}
+          webViewProps={{
+            allowsInlineMediaPlayback: true,
+            mediaPlaybackRequiresUserAction: false,
+            javaScriptEnabled: true,
+            domStorageEnabled: true,
+            allowsFullscreenVideo: true,
+            mixedContentMode: 'always',
+            originWhitelist: ['*'],
+          }}
+          onError={(error) => console.log('YouTube Error:', error)}
         />
 
-        {isLoading && (
+        {isLoading && !isReady && (
           <View style={styles.videoLoadingOverlay}>
             <ActivityIndicator size="large" color={COLORS.primary} />
+            <Text style={styles.loadingText}>Video yükleniyor...</Text>
           </View>
+        )}
+
+        {isReady && !isPlaying && (
+          <TouchableOpacity
+            style={styles.playOverlay}
+            onPress={() => setIsPlaying(true)}
+          >
+            <View style={styles.bigPlayButton}>
+              <Text style={styles.bigPlayIcon}>▶</Text>
+            </View>
+          </TouchableOpacity>
         )}
       </View>
 
@@ -303,13 +386,20 @@ const VideoPlayerScreen = ({ navigation, route }) => {
       <ScrollView style={styles.contentContainer} showsVerticalScrollIndicator={false}>
         {/* Current Lesson Info */}
         <View style={styles.lessonInfoCard}>
-          <Text style={styles.lessonTitle}>{currentLesson?.title || 'Ders Başlığı'}</Text>
+          <View style={styles.lessonTitleRow}>
+            <Text style={styles.lessonTitle}>{currentLesson?.title || 'Ders Başlığı'}</Text>
+            {currentLesson?.isFree && (
+              <View style={styles.freeBadge}>
+                <Text style={styles.freeBadgeText}>Ücretsiz</Text>
+              </View>
+            )}
+          </View>
           {currentLesson?.description && (
             <Text style={styles.lessonDescription}>{currentLesson.description}</Text>
           )}
-          {currentLesson?.duration && (
+          {currentLesson?.durationSeconds && (
             <View style={styles.durationBadge}>
-              <Text style={styles.durationText}>⏱ {currentLesson.duration} dk</Text>
+              <Text style={styles.durationText}>⏱ {formatDuration(currentLesson.durationSeconds)}</Text>
             </View>
           )}
         </View>
@@ -343,9 +433,16 @@ const VideoPlayerScreen = ({ navigation, route }) => {
                   ]} numberOfLines={2}>
                     {lessonItem.title}
                   </Text>
-                  {lessonItem.duration && (
-                    <Text style={styles.lessonListDuration}>{lessonItem.duration} dk</Text>
-                  )}
+                  <View style={styles.lessonListMeta}>
+                    {lessonItem.durationSeconds && (
+                      <Text style={styles.lessonListDuration}>{formatDuration(lessonItem.durationSeconds)}</Text>
+                    )}
+                    {lessonItem.isFree && (
+                      <View style={styles.lessonListFreeBadge}>
+                        <Text style={styles.lessonListFreeBadgeText}>Ücretsiz</Text>
+                      </View>
+                    )}
+                  </View>
                 </View>
                 {index === currentLessonIndex && (
                   <View style={styles.nowPlayingBadge}>
@@ -415,9 +512,33 @@ const styles = StyleSheet.create({
   },
   videoLoadingOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: 'rgba(0,0,0,0.7)',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  loadingText: {
+    color: COLORS.white,
+    marginTop: 10,
+    fontSize: SIZES.body2,
+  },
+  playOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.3)',
+  },
+  bigPlayButton: {
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    backgroundColor: COLORS.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  bigPlayIcon: {
+    fontSize: 32,
+    color: COLORS.white,
+    marginLeft: 4,
   },
   loadingOverlay: {
     ...StyleSheet.absoluteFillObject,
@@ -488,11 +609,28 @@ const styles = StyleSheet.create({
     marginTop: SIZES.padding,
     borderRadius: SIZES.radius,
   },
+  lessonTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: SIZES.paddingSmall,
+  },
   lessonTitle: {
     fontSize: SIZES.h3,
     fontWeight: 'bold',
     color: COLORS.text,
-    marginBottom: SIZES.paddingSmall,
+    flex: 1,
+  },
+  freeBadge: {
+    backgroundColor: COLORS.success + '20',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 4,
+    marginLeft: 8,
+  },
+  freeBadgeText: {
+    fontSize: 12,
+    color: COLORS.success,
+    fontWeight: '600',
   },
   lessonDescription: {
     fontSize: SIZES.body1,
@@ -563,10 +701,26 @@ const styles = StyleSheet.create({
     color: COLORS.primary,
     fontWeight: '600',
   },
+  lessonListMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 2,
+  },
   lessonListDuration: {
     fontSize: SIZES.body2,
     color: COLORS.textLight,
-    marginTop: 2,
+  },
+  lessonListFreeBadge: {
+    backgroundColor: COLORS.success + '20',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    marginLeft: 8,
+  },
+  lessonListFreeBadgeText: {
+    fontSize: 10,
+    color: COLORS.success,
+    fontWeight: '600',
   },
   nowPlayingBadge: {
     backgroundColor: COLORS.primary,

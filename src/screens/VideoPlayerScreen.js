@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -11,30 +11,28 @@ import {
   BackHandler,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import YoutubePlayer from 'react-native-youtube-iframe';
+import { Video, ResizeMode } from 'expo-av';
 import * as ScreenOrientation from 'expo-screen-orientation';
 import { COLORS, SIZES } from '../constants/theme';
 import useCourseStore from '../store/courseStore';
-import { showSuccessToast, showErrorToast } from '../utils/toast';
+import { showSuccessToast } from '../utils/toast';
 
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 const VideoPlayerScreen = ({ navigation, route }) => {
   const { lesson, courseId, courseName, lessons = [] } = route.params || {};
 
   const [isFullScreen, setIsFullScreen] = useState(false);
-  const [isPlaying, setIsPlaying] = useState(false); // Başlangıçta false - kullanıcı başlatsın
-  const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(0);
+  const [status, setStatus] = useState({});
   const [isLoading, setIsLoading] = useState(true);
-  const [isReady, setIsReady] = useState(false);
   const [currentLessonIndex, setCurrentLessonIndex] = useState(0);
   const [currentLesson, setCurrentLesson] = useState(lesson);
 
-  const playerRef = useRef(null);
-  const progressIntervalRef = useRef(null);
+  const videoRef = useRef(null);
+  const { markLessonComplete } = useCourseStore();
 
-  const { markLessonComplete, updateProgress } = useCourseStore();
+  // Video URL - CDN'den gelen URL
+  const videoUrl = currentLesson?.videoUrl || 'https://d3dcmqyicbxyjj.cloudfront.net/raw/sample-20s.mp4';
 
   // Mevcut ders index'ini bul
   useEffect(() => {
@@ -62,52 +60,9 @@ const VideoPlayerScreen = ({ navigation, route }) => {
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      if (progressIntervalRef.current) {
-        clearInterval(progressIntervalRef.current);
-      }
-      // Ekranı portrait'e döndür
       ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
     };
   }, []);
-
-  // YouTube video ID'sini URL'den çıkar
-  const getYoutubeVideoId = (url) => {
-    if (!url) return null;
-
-    // Direkt video ID ise
-    if (url.length === 11 && !url.includes('/')) {
-      return url;
-    }
-
-    // YouTube URL formatları
-    const patterns = [
-      /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/,
-      /^([a-zA-Z0-9_-]{11})$/,
-    ];
-
-    for (const pattern of patterns) {
-      const match = url.match(pattern);
-      if (match) return match[1];
-    }
-
-    return null;
-  };
-
-  // Video ID - önce videoId alanını kontrol et, sonra URL'den çıkar
-  const videoId = currentLesson?.videoId || getYoutubeVideoId(currentLesson?.videoUrl) || 'oPpnCh7InLY';
-
-  // Saniyeyi formatla
-  const formatDuration = (seconds) => {
-    if (!seconds) return '';
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    if (mins >= 60) {
-      const hours = Math.floor(mins / 60);
-      const remainingMins = mins % 60;
-      return `${hours}s ${remainingMins}dk`;
-    }
-    return secs > 0 ? `${mins}:${secs.toString().padStart(2, '0')}` : `${mins}dk`;
-  };
 
   const enterFullScreen = async () => {
     setIsFullScreen(true);
@@ -121,47 +76,18 @@ const VideoPlayerScreen = ({ navigation, route }) => {
     await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
   };
 
-  const toggleFullScreen = () => {
-    if (isFullScreen) {
-      exitFullScreen();
-    } else {
-      enterFullScreen();
+  const onPlaybackStatusUpdate = (playbackStatus) => {
+    setStatus(playbackStatus);
+
+    if (playbackStatus.isLoaded) {
+      setIsLoading(false);
+
+      // Video bitti mi kontrol et
+      if (playbackStatus.didJustFinish) {
+        handleLessonComplete();
+      }
     }
   };
-
-  const onReady = useCallback(() => {
-    setIsLoading(false);
-    setIsReady(true);
-    console.log('YouTube Player Ready');
-  }, []);
-
-  const onStateChange = useCallback((state) => {
-    console.log('YouTube State:', state);
-    switch (state) {
-      case 'ended':
-        setIsPlaying(false);
-        setIsLoading(false);
-        handleLessonComplete();
-        break;
-      case 'playing':
-        setIsLoading(false);
-        setIsPlaying(true);
-        break;
-      case 'paused':
-        setIsPlaying(false);
-        setIsLoading(false);
-        break;
-      case 'buffering':
-        // Sadece video başladıktan sonra buffering göster
-        // İlk yüklemede gösterme
-        break;
-      case 'unstarted':
-        setIsLoading(false);
-        break;
-      default:
-        break;
-    }
-  }, []);
 
   const handleLessonComplete = async () => {
     try {
@@ -174,97 +100,139 @@ const VideoPlayerScreen = ({ navigation, route }) => {
     }
   };
 
-  const goToNextLesson = () => {
+  const togglePlayPause = async () => {
+    if (videoRef.current) {
+      if (status.isPlaying) {
+        await videoRef.current.pauseAsync();
+      } else {
+        await videoRef.current.playAsync();
+      }
+    }
+  };
+
+  const goToNextLesson = async () => {
     if (currentLessonIndex < lessons.length - 1) {
       const nextLesson = lessons[currentLessonIndex + 1];
       setCurrentLessonIndex(currentLessonIndex + 1);
       setCurrentLesson(nextLesson);
-      setIsPlaying(false);
-      setIsReady(false);
       setIsLoading(true);
-      setCurrentTime(0);
+      if (videoRef.current) {
+        await videoRef.current.unloadAsync();
+      }
     } else {
       showSuccessToast('Tüm dersler tamamlandı!', 'Kurs Bitti');
     }
   };
 
-  const goToPreviousLesson = () => {
+  const goToPreviousLesson = async () => {
     if (currentLessonIndex > 0) {
       const prevLesson = lessons[currentLessonIndex - 1];
       setCurrentLessonIndex(currentLessonIndex - 1);
       setCurrentLesson(prevLesson);
-      setIsPlaying(false);
-      setIsReady(false);
       setIsLoading(true);
-      setCurrentTime(0);
+      if (videoRef.current) {
+        await videoRef.current.unloadAsync();
+      }
     }
   };
 
-  const selectLesson = (lessonItem, index) => {
+  const selectLesson = async (lessonItem, index) => {
     setCurrentLessonIndex(index);
     setCurrentLesson(lessonItem);
-    setIsPlaying(false);
-    setIsReady(false);
     setIsLoading(true);
-    setCurrentTime(0);
+    if (videoRef.current) {
+      await videoRef.current.unloadAsync();
+    }
   };
 
-  const formatTime = (seconds) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
+  const handleSeek = async (event) => {
+    if (!status.durationMillis || !videoRef.current) return;
+
+    const { locationX } = event.nativeEvent;
+    const progressBarWidth = SCREEN_WIDTH - 32;
+    const seekPosition = (locationX / progressBarWidth) * status.durationMillis;
+    await videoRef.current.setPositionAsync(seekPosition);
+  };
+
+  const formatTime = (millis) => {
+    if (!millis || isNaN(millis)) return '0:00';
+    const totalSeconds = Math.floor(millis / 1000);
+    const mins = Math.floor(totalSeconds / 60);
+    const secs = totalSeconds % 60;
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
+
+  const formatDuration = (seconds) => {
+    if (!seconds) return '';
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    if (mins >= 60) {
+      const hours = Math.floor(mins / 60);
+      const remainingMins = mins % 60;
+      return `${hours}s ${remainingMins}dk`;
+    }
+    return secs > 0 ? `${mins}:${secs.toString().padStart(2, '0')}` : `${mins}dk`;
+  };
+
+  const progress = status.durationMillis > 0
+    ? (status.positionMillis / status.durationMillis) * 100
+    : 0;
+
+  const isPlaying = status.isPlaying || false;
 
   // Full screen video player
   if (isFullScreen) {
     return (
       <View style={styles.fullScreenContainer}>
         <StatusBar hidden />
-        <YoutubePlayer
-          ref={playerRef}
-          height={SCREEN_WIDTH}
-          width={SCREEN_HEIGHT}
-          play={isPlaying}
-          videoId={videoId}
-          onReady={onReady}
-          onChangeState={onStateChange}
-          forceAndroidAutoplay={true}
-          initialPlayerParams={{
-            preventFullScreen: false,
-            controls: true,
-            modestbranding: true,
-            rel: false,
-          }}
-          webViewProps={{
-            allowsInlineMediaPlayback: true,
-            mediaPlaybackRequiresUserAction: false,
-            javaScriptEnabled: true,
-            domStorageEnabled: true,
-            allowsFullscreenVideo: true,
-            mixedContentMode: 'always',
-            originWhitelist: ['*'],
-            injectedJavaScript: `
-              var element = document.getElementsByClassName('container')[0];
-              if(element) element.style.position = 'unset';
-              true;
-            `,
-          }}
-          onError={(error) => console.log('YouTube Error:', error)}
+        <Video
+          ref={videoRef}
+          source={{ uri: videoUrl }}
+          style={styles.fullScreenVideo}
+          resizeMode={ResizeMode.CONTAIN}
+          shouldPlay
+          onPlaybackStatusUpdate={onPlaybackStatusUpdate}
+          useNativeControls={false}
         />
 
-        {/* Full Screen Controls Overlay */}
-        <View style={styles.fullScreenControls}>
-          <TouchableOpacity
-            style={styles.exitFullScreenButton}
-            onPress={exitFullScreen}
-          >
-            <Text style={styles.controlIcon}>⛶</Text>
-          </TouchableOpacity>
-        </View>
+        {/* Full Screen Overlay Controls */}
+        <TouchableOpacity
+          style={styles.fullScreenOverlay}
+          activeOpacity={1}
+          onPress={togglePlayPause}
+        >
+          {/* Top Bar */}
+          <View style={styles.fullScreenTopBar}>
+            <TouchableOpacity onPress={exitFullScreen} style={styles.fullScreenBackButton}>
+              <Text style={styles.fullScreenIcon}>✕</Text>
+            </TouchableOpacity>
+            <Text style={styles.fullScreenTitle} numberOfLines={1}>
+              {currentLesson?.title}
+            </Text>
+          </View>
+
+          {/* Center Play/Pause */}
+          {!isPlaying && (
+            <View style={styles.fullScreenCenterButton}>
+              <Text style={styles.fullScreenPlayIcon}>▶</Text>
+            </View>
+          )}
+
+          {/* Bottom Bar */}
+          <View style={styles.fullScreenBottomBar}>
+            <Text style={styles.fullScreenTime}>{formatTime(status.positionMillis)}</Text>
+            <View style={styles.fullScreenProgressContainer}>
+              <View style={styles.fullScreenProgressBar}>
+                <View style={[styles.fullScreenProgressFill, { width: `${progress}%` }]} />
+              </View>
+            </View>
+            <Text style={styles.fullScreenTime}>{formatTime(status.durationMillis)}</Text>
+          </View>
+        </TouchableOpacity>
 
         {isLoading && (
           <View style={styles.loadingOverlay}>
-            <ActivityIndicator size="large" color={COLORS.primary} />
+            <ActivityIndicator size="large" color={COLORS.white} />
           </View>
         )}
       </View>
@@ -273,7 +241,7 @@ const VideoPlayerScreen = ({ navigation, route }) => {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <StatusBar barStyle="light-content" backgroundColor={COLORS.text} />
+      <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} />
 
       {/* Header */}
       <View style={styles.header}>
@@ -301,49 +269,51 @@ const VideoPlayerScreen = ({ navigation, route }) => {
 
       {/* Video Player */}
       <View style={styles.videoContainer}>
-        <YoutubePlayer
-          ref={playerRef}
-          height={SCREEN_WIDTH * 9 / 16}
-          width={SCREEN_WIDTH}
-          play={isPlaying}
-          videoId={videoId}
-          onReady={onReady}
-          onChangeState={onStateChange}
-          forceAndroidAutoplay={true}
-          initialPlayerParams={{
-            preventFullScreen: false,
-            controls: true,
-            modestbranding: true,
-            rel: false,
-          }}
-          webViewProps={{
-            allowsInlineMediaPlayback: true,
-            mediaPlaybackRequiresUserAction: false,
-            javaScriptEnabled: true,
-            domStorageEnabled: true,
-            allowsFullscreenVideo: true,
-            mixedContentMode: 'always',
-            originWhitelist: ['*'],
-          }}
-          onError={(error) => console.log('YouTube Error:', error)}
+        <Video
+          ref={videoRef}
+          source={{ uri: videoUrl }}
+          style={styles.video}
+          resizeMode={ResizeMode.CONTAIN}
+          shouldPlay
+          onPlaybackStatusUpdate={onPlaybackStatusUpdate}
+          useNativeControls={false}
         />
 
-        {isLoading && !isReady && (
+        {/* Video Overlay - Play/Pause on tap */}
+        <TouchableOpacity
+          style={styles.videoOverlay}
+          activeOpacity={1}
+          onPress={togglePlayPause}
+        >
+          {!isPlaying && !isLoading && (
+            <View style={styles.bigPlayButton}>
+              <Text style={styles.bigPlayIcon}>▶</Text>
+            </View>
+          )}
+        </TouchableOpacity>
+
+        {/* Progress Bar */}
+        <View style={styles.videoProgressContainer}>
+          <TouchableOpacity
+            style={styles.progressBarTouchable}
+            onPress={handleSeek}
+            activeOpacity={1}
+          >
+            <View style={styles.progressBar}>
+              <View style={[styles.progressFill, { width: `${progress}%` }]} />
+            </View>
+          </TouchableOpacity>
+          <View style={styles.timeContainer}>
+            <Text style={styles.timeText}>{formatTime(status.positionMillis)}</Text>
+            <Text style={styles.timeText}>{formatTime(status.durationMillis)}</Text>
+          </View>
+        </View>
+
+        {isLoading && (
           <View style={styles.videoLoadingOverlay}>
             <ActivityIndicator size="large" color={COLORS.primary} />
             <Text style={styles.loadingText}>Video yükleniyor...</Text>
           </View>
-        )}
-
-        {isReady && !isPlaying && (
-          <TouchableOpacity
-            style={styles.playOverlay}
-            onPress={() => setIsPlaying(true)}
-          >
-            <View style={styles.bigPlayButton}>
-              <Text style={styles.bigPlayIcon}>▶</Text>
-            </View>
-          </TouchableOpacity>
         )}
       </View>
 
@@ -360,7 +330,7 @@ const VideoPlayerScreen = ({ navigation, route }) => {
 
           <TouchableOpacity
             style={styles.playPauseButton}
-            onPress={() => setIsPlaying(!isPlaying)}
+            onPress={togglePlayPause}
           >
             <Text style={styles.playPauseIcon}>{isPlaying ? '⏸' : '▶️'}</Text>
           </TouchableOpacity>
@@ -466,15 +436,79 @@ const styles = StyleSheet.create({
   fullScreenContainer: {
     flex: 1,
     backgroundColor: '#000',
+  },
+  fullScreenVideo: {
+    flex: 1,
+  },
+  fullScreenOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: 'space-between',
+  },
+  fullScreenTopBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 20,
+    paddingTop: 40,
+    backgroundColor: 'rgba(0,0,0,0.3)',
+  },
+  fullScreenBackButton: {
+    padding: 10,
+  },
+  fullScreenIcon: {
+    fontSize: 24,
+    color: COLORS.white,
+  },
+  fullScreenTitle: {
+    flex: 1,
+    fontSize: 16,
+    color: COLORS.white,
+    marginLeft: 10,
+  },
+  fullScreenCenterButton: {
+    alignSelf: 'center',
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  fullScreenPlayIcon: {
+    fontSize: 36,
+    color: COLORS.white,
+  },
+  fullScreenBottomBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 20,
+    paddingBottom: 40,
+    backgroundColor: 'rgba(0,0,0,0.3)',
+  },
+  fullScreenTime: {
+    fontSize: 14,
+    color: COLORS.white,
+    minWidth: 50,
+  },
+  fullScreenProgressContainer: {
+    flex: 1,
+    marginHorizontal: 15,
+  },
+  fullScreenProgressBar: {
+    height: 4,
+    backgroundColor: 'rgba(255,255,255,0.3)',
+    borderRadius: 2,
+  },
+  fullScreenProgressFill: {
+    height: '100%',
+    backgroundColor: COLORS.primary,
+    borderRadius: 2,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.text,
+    backgroundColor: COLORS.primary,
     paddingHorizontal: SIZES.padding,
-    paddingVertical: SIZES.paddingSmall,
+    paddingVertical: SIZES.padding,
   },
   backButton: {
     padding: SIZES.paddingSmall,
@@ -510,28 +544,20 @@ const styles = StyleSheet.create({
     height: SCREEN_WIDTH * 9 / 16,
     backgroundColor: '#000',
   },
-  videoLoadingOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.7)',
-    justifyContent: 'center',
-    alignItems: 'center',
+  video: {
+    width: '100%',
+    height: '100%',
   },
-  loadingText: {
-    color: COLORS.white,
-    marginTop: 10,
-    fontSize: SIZES.body2,
-  },
-  playOverlay: {
+  videoOverlay: {
     ...StyleSheet.absoluteFillObject,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.3)',
   },
   bigPlayButton: {
     width: 70,
     height: 70,
     borderRadius: 35,
-    backgroundColor: COLORS.primary,
+    backgroundColor: 'rgba(0,0,0,0.6)',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -540,21 +566,52 @@ const styles = StyleSheet.create({
     color: COLORS.white,
     marginLeft: 4,
   },
+  videoProgressContainer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    padding: 8,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+  },
+  progressBarTouchable: {
+    paddingVertical: 8,
+  },
+  progressBar: {
+    height: 4,
+    backgroundColor: 'rgba(255,255,255,0.3)',
+    borderRadius: 2,
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: COLORS.primary,
+    borderRadius: 2,
+  },
+  timeContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 4,
+  },
+  timeText: {
+    fontSize: 12,
+    color: COLORS.white,
+  },
+  videoLoadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   loadingOverlay: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(0,0,0,0.3)',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  fullScreenControls: {
-    position: 'absolute',
-    top: 20,
-    right: 20,
-  },
-  exitFullScreenButton: {
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    padding: 10,
-    borderRadius: 8,
+  loadingText: {
+    color: COLORS.white,
+    marginTop: 10,
+    fontSize: SIZES.body2,
   },
   controlsContainer: {
     backgroundColor: COLORS.card,

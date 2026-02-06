@@ -3,6 +3,7 @@ import {Text} from 'react-native';
 import {createStackNavigator} from '@react-navigation/stack';
 import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
 import DashboardScreen from '../screens/DashboardScreen';
+import CourseDetailScreen from '../screens/CourseDetailScreen';
 import {COLORS} from '../constants/theme';
 
 const Stack = createStackNavigator();
@@ -66,6 +67,7 @@ const MainNavigator = () => {
             }}
             id={"main"}>
             <Stack.Screen name="MainTabs" component={TabNavigator}/>
+            <Stack.Screen name="CourseDetail" component={CourseDetailScreen}/>
         </Stack.Navigator>
     );
 };

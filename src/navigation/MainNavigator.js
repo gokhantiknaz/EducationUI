@@ -3,13 +3,17 @@ import {Text} from 'react-native';
 import {createStackNavigator} from '@react-navigation/stack';
 import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
 import DashboardScreen from '../screens/DashboardScreen';
+import SearchScreen from '../screens/SearchScreen';
+import MyCoursesScreen from '../screens/MyCoursesScreen';
+import MyListScreen from '../screens/MyListScreen';
 import CourseDetailScreen from '../screens/CourseDetailScreen';
+import VideoPlayerScreen from '../screens/VideoPlayerScreen';
 import {COLORS} from '../constants/theme';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
 
-// Tab Navigator (Ana ekranlar için)
+// Tab Navigator (Main screens)
 const TabNavigator = () => {
     return (
         <Tab.Navigator
@@ -20,7 +24,7 @@ const TabNavigator = () => {
                 tabBarStyle: {
                     paddingBottom: 5,
                     paddingTop: 5,
-                    height: 60,
+                    height: 90,
                 },
             }}
             id={"screen"}>
@@ -28,29 +32,39 @@ const TabNavigator = () => {
                 name="Dashboard"
                 component={DashboardScreen}
                 options={{
-                    tabBarLabel: 'Ana Sayfa',
+                    tabBarLabel: 'Home',
                     tabBarIcon: ({color, size}) => (
                         <Text style={{fontSize: size, color}}>🏠</Text>
                     ),
                 }}
             />
             <Tab.Screen
-                name="Courses"
-                component={DashboardScreen} // Geçici olarak Dashboard kullanıyoruz
+                name="Search"
+                component={SearchScreen}
                 options={{
-                    tabBarLabel: 'Kurslar',
+                    tabBarLabel: 'Search',
+                    tabBarIcon: ({color, size}) => (
+                        <Text style={{fontSize: size, color}}>🔍</Text>
+                    ),
+                }}
+            />
+            <Tab.Screen
+                name="MyCourses"
+                component={MyCoursesScreen}
+                options={{
+                    tabBarLabel: 'My Courses',
                     tabBarIcon: ({color, size}) => (
                         <Text style={{fontSize: size, color}}>📚</Text>
                     ),
                 }}
             />
             <Tab.Screen
-                name="Profile"
-                component={DashboardScreen} // Geçici olarak Dashboard kullanıyoruz
+                name="MyList"
+                component={MyListScreen}
                 options={{
-                    tabBarLabel: 'Profil',
+                    tabBarLabel: 'My List',
                     tabBarIcon: ({color, size}) => (
-                        <Text style={{fontSize: size, color}}>👤</Text>
+                        <Text style={{fontSize: size, color}}>❤️</Text>
                     ),
                 }}
             />
@@ -68,6 +82,13 @@ const MainNavigator = () => {
             id={"main"}>
             <Stack.Screen name="MainTabs" component={TabNavigator}/>
             <Stack.Screen name="CourseDetail" component={CourseDetailScreen}/>
+            <Stack.Screen
+                name="VideoPlayer"
+                component={VideoPlayerScreen}
+                options={{
+                    gestureEnabled: false, // Swipe back'i devre dışı bırak (video izlerken)
+                }}
+            />
         </Stack.Navigator>
     );
 };

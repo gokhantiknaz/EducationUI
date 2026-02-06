@@ -27,15 +27,15 @@ const LoginScreen = ({ navigation }) => {
     const newErrors = {};
 
     if (!email.trim()) {
-      newErrors.email = 'E-posta adresi gereklidir';
+      newErrors.email = 'Email address is required';
     } else if (!/\S+@\S+\.\S+/.test(email)) {
-      newErrors.email = 'Geçerli bir e-posta adresi giriniz';
+      newErrors.email = 'Please enter a valid email address';
     }
 
     if (!password) {
-      newErrors.password = 'Şifre gereklidir';
+      newErrors.password = 'Password is required';
     } else if (password.length < 6) {
-      newErrors.password = 'Şifre en az 6 karakter olmalıdır';
+      newErrors.password = 'Password must be at least 6 characters';
     }
 
     setErrors(newErrors);
@@ -47,11 +47,11 @@ const LoginScreen = ({ navigation }) => {
 
     try {
       await login(email.trim(), password);
-      showSuccessToast('Giriş başarılı! Hoş geldiniz.', 'Giriş Başarılı');
+      showSuccessToast('Login successful! Welcome.', 'Login Successful');
       // Navigation otomatik olarak AuthNavigator tarafından yönetilecek
     } catch (error) {
       // Backend'den gelen hata mesajlarını göster
-      const errorMessage = error.message || 'Giriş yapılamadı';
+      const errorMessage = error.message || 'Login failed';
 
       // Yaygın hata durumları için özel mesajlar
       if (errorMessage.toLowerCase().includes('not found') ||
@@ -62,18 +62,18 @@ const LoginScreen = ({ navigation }) => {
                  errorMessage.toLowerCase().includes('şifre') ||
                  errorMessage.toLowerCase().includes('invalid credentials') ||
                  errorMessage.toLowerCase().includes('unauthorized')) {
-        showErrorToast('E-posta veya şifre hatalı.', 'Giriş Hatası');
+        showErrorToast('Email or password is incorrect.', 'Login Error');
       } else if (errorMessage.toLowerCase().includes('locked') ||
                  errorMessage.toLowerCase().includes('kilitli')) {
         showErrorToast('Hesabınız kilitlendi. Lütfen destek ile iletişime geçin.', 'Hesap Kilitli');
       } else if (errorMessage.toLowerCase().includes('verify') ||
                  errorMessage.toLowerCase().includes('doğrula')) {
-        showErrorToast('Lütfen e-posta adresinizi doğrulayın.', 'E-posta Doğrulanmadı');
+        showErrorToast('Please verify your email address.', 'Email Not Verified');
       } else if (errorMessage.toLowerCase().includes('network') ||
                  errorMessage.toLowerCase().includes('bağlan')) {
         showErrorToast('Sunucuya bağlanılamadı. İnternet bağlantınızı kontrol edin.', 'Bağlantı Hatası');
       } else {
-        showErrorToast(errorMessage, 'Giriş Hatası');
+        showErrorToast(errorMessage, 'Login Error');
       }
     }
   };
@@ -103,7 +103,7 @@ const LoginScreen = ({ navigation }) => {
           {/* Form */}
           <View style={styles.form}>
             <Input
-              label="E-posta"
+              label="Email"
               value={email}
               onChangeText={(text) => {
                 setEmail(text);
@@ -118,7 +118,7 @@ const LoginScreen = ({ navigation }) => {
             />
 
             <Input
-              label="Şifre"
+              label="Password"
               value={password}
               onChangeText={(text) => {
                 setPassword(text);
@@ -139,11 +139,11 @@ const LoginScreen = ({ navigation }) => {
               style={styles.forgotPassword}
               onPress={() => navigation.navigate('ForgotPassword')}
             >
-              <Text style={styles.forgotPasswordText}>Şifremi Unuttum?</Text>
+              <Text style={styles.forgotPasswordText}>Passwordmi Unuttum?</Text>
             </TouchableOpacity>
 
             <Button
-              title="Giriş Yap"
+              title="Log In"
               onPress={handleLogin}
               loading={isLoading}
               style={styles.loginButton}
@@ -156,9 +156,9 @@ const LoginScreen = ({ navigation }) => {
             </View>
 
             <View style={styles.registerContainer}>
-              <Text style={styles.registerText}>Hesabınız yok mu? </Text>
+              <Text style={styles.registerText}>Don't have an account? </Text>
               <TouchableOpacity onPress={() => navigation.navigate('Register')}>
-                <Text style={styles.registerLink}>Kayıt Olun</Text>
+                <Text style={styles.registerLink}>Sign Up</Text>
               </TouchableOpacity>
             </View>
           </View>

@@ -1,10 +1,12 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  Modal,
+  Pressable,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { COLORS, SIZES, SHADOWS } from '../constants/theme';
@@ -16,6 +18,7 @@ import Loading from '../components/Loading';
 const DashboardScreen = ({ navigation }) => {
   const { user, logout } = useAuthStore();
   const { myCourses, fetchMyCourses, isLoading } = useCourseStore();
+  const [showDropdown, setShowDropdown] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -23,21 +26,35 @@ const DashboardScreen = ({ navigation }) => {
 
   const loadData = async () => {
     try {
-      console.log('Kurslar yükleniyor...');
+      console.log('Loading courses...');
       const response = await fetchMyCourses();
-      console.log('Kurslar yüklendi:', response);
+      console.log('Courses loaded:', response);
     } catch (error) {
-      console.error('Dashboard yüklenemedi:', JSON.stringify(error, null, 2));
-      alert(`Hata: ${error.message}\n\nDetay: ${JSON.stringify(error.data?.errors || error.data, null, 2)}`);
+      console.error('Failed to load dashboard:', JSON.stringify(error, null, 2));
+      alert(`Error: ${error.message}\n\nDetails: ${JSON.stringify(error.data?.errors || error.data, null, 2)}`);
     }
   };
 
   const handleLogout = async () => {
-    await logout();
+    try {
+      console.log('Starting logout...');
+      setShowDropdown(false);
+      await logout();
+      console.log('Logout completed');
+    } catch (error) {
+      console.error('Logout error:', error);
+      alert('An error occurred during logout: ' + error.message);
+    }
+  };
+
+  const handleProfilePress = () => {
+    setShowDropdown(false);
+    // TODO: Navigate to Profile screen
+    console.log('Navigate to Profile');
   };
 
   if (isLoading) {
-    return <Loading text="Yükleniyor..." />;
+    return <Loading text="Loading..." />;
   }
 
   return (
@@ -49,12 +66,18 @@ const DashboardScreen = ({ navigation }) => {
         {/* Header */}
         <View style={styles.header}>
           <View>
-            <Text style={styles.greeting}>Merhaba,</Text>
+            <Text style={styles.greeting}>Hello,</Text>
             <Text style={styles.userName}>
               {user?.firstName} {user?.lastName}
             </Text>
           </View>
-          <TouchableOpacity style={styles.avatarContainer}>
+          <TouchableOpacity
+            style={styles.avatarContainer}
+            onPress={() => {
+              console.log('Avatar clicked, current showDropdown:', showDropdown);
+              setShowDropdown(!showDropdown);
+            }}
+          >
             <Text style={styles.avatarText}>
               {user?.firstName?.charAt(0)}{user?.lastName?.charAt(0)}
             </Text>
@@ -67,26 +90,26 @@ const DashboardScreen = ({ navigation }) => {
             <Text style={styles.statNumber}>
               {myCourses?.filter(e => !e.completedAt).length || 0}
             </Text>
-            <Text style={styles.statLabel}>Aktif Kurslar</Text>
+            <Text style={styles.statLabel}>Active Courses</Text>
           </View>
           <View style={styles.statCard}>
             <Text style={styles.statNumber}>
               {myCourses?.filter(e => e.completedAt).length || 0}
             </Text>
-            <Text style={styles.statLabel}>Tamamlanan</Text>
+            <Text style={styles.statLabel}>Completed</Text>
           </View>
           <View style={styles.statCard}>
             <Text style={styles.statNumber}>
               {myCourses?.filter(e => e.completedAt).length || 0}
             </Text>
-            <Text style={styles.statLabel}>Sertifika</Text>
+            <Text style={styles.statLabel}>Certificates</Text>
           </View>
         </View>
 
         {/* Continue Learning */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Öğrenmeye Devam Et</Text>
-          
+          <Text style={styles.sectionTitle}>Continue Learning</Text>
+
           {myCourses && myCourses.length > 0 ? (
             myCourses.map((enrollment) => (
               <TouchableOpacity
@@ -97,7 +120,7 @@ const DashboardScreen = ({ navigation }) => {
                 <View style={styles.courseInfo}>
                   <Text style={styles.courseTitle}>{enrollment.course.title}</Text>
                   <Text style={styles.courseCategory}>
-                    {enrollment.completedAt ? 'Tamamlandı' : 'Devam Ediyor'}
+                    {enrollment.completedAt ? 'Completed' : 'In Progress'}
                   </Text>
 
                   {/* Progress Bar */}
@@ -121,11 +144,11 @@ const DashboardScreen = ({ navigation }) => {
             <View style={styles.emptyState}>
               <Text style={styles.emptyStateIcon}>📚</Text>
               <Text style={styles.emptyStateText}>
-                Henüz kurs satın almadınız
+                You haven't enrolled in any courses yet
               </Text>
               <Button
-                title="Kursları Keşfet"
-                onPress={() => navigation.navigate('Courses')}
+                title="Explore Courses"
+                onPress={() => navigation.navigate('Search')}
                 variant="primary"
                 size="medium"
                 style={styles.exploreButton}
@@ -133,15 +156,43 @@ const DashboardScreen = ({ navigation }) => {
             </View>
           )}
         </View>
-
-        {/* Logout Button */}
-        <Button
-          title="Çıkış Yap"
-          onPress={handleLogout}
-          variant="outline"
-          style={styles.logoutButton}
-        />
       </ScrollView>
+
+      {/* Dropdown Menu - Outside ScrollView for proper z-index */}
+      {showDropdown && (
+        <>
+          <Pressable
+            style={styles.backdrop}
+            onPress={() => {
+              console.log('Backdrop clicked');
+              setShowDropdown(false);
+            }}
+          />
+          <View style={styles.dropdownContainer}>
+            <TouchableOpacity
+              style={styles.dropdownItem}
+              onPress={() => {
+                console.log('Profile clicked');
+                handleProfilePress();
+              }}
+            >
+              <Text style={styles.dropdownIcon}>👤</Text>
+              <Text style={styles.dropdownText}>My Profile</Text>
+            </TouchableOpacity>
+            <View style={styles.dropdownDivider} />
+            <TouchableOpacity
+              style={styles.dropdownItem}
+              onPress={() => {
+                console.log('Logout clicked');
+                handleLogout();
+              }}
+            >
+              <Text style={styles.dropdownIcon}>🚪</Text>
+              <Text style={styles.dropdownText}>Logout</Text>
+            </TouchableOpacity>
+          </View>
+        </>
+      )}
     </SafeAreaView>
   );
 };
@@ -182,6 +233,45 @@ const styles = StyleSheet.create({
     fontSize: SIZES.large,
     fontWeight: 'bold',
     color: COLORS.background,
+  },
+  dropdownContainer: {
+    position: 'absolute',
+    top: 110, // Adjusted for SafeAreaView + header
+    right: SIZES.paddingLarge,
+    backgroundColor: COLORS.card,
+    borderRadius: SIZES.radius,
+    minWidth: 180,
+    zIndex: 1001, // Higher than backdrop
+    ...SHADOWS.medium,
+    elevation: 5, // For Android
+  },
+  dropdownItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: SIZES.padding,
+  },
+  dropdownIcon: {
+    fontSize: 20,
+    marginRight: SIZES.paddingSmall,
+  },
+  dropdownText: {
+    fontSize: SIZES.body2,
+    color: COLORS.text,
+    fontWeight: '500',
+  },
+  dropdownDivider: {
+    height: 1,
+    backgroundColor: COLORS.border,
+    marginHorizontal: SIZES.paddingSmall,
+  },
+  backdrop: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'transparent',
+    zIndex: 999,
   },
   statsContainer: {
     flexDirection: 'row',
@@ -278,9 +368,6 @@ const styles = StyleSheet.create({
   },
   exploreButton: {
     minWidth: 200,
-  },
-  logoutButton: {
-    marginTop: SIZES.padding,
   },
 });
 

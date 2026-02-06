@@ -62,7 +62,7 @@ const RegisterScreen = ({ navigation }) => {
     if (!formData.confirmPassword) {
       newErrors.confirmPassword = 'Şifre tekrarı gereklidir';
     } else if (formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = 'Şifreler eşleşmiyor';
+      newErrors.confirmPassword = 'Passwords do not match';
     }
 
     setErrors(newErrors);
@@ -81,7 +81,7 @@ const RegisterScreen = ({ navigation }) => {
       };
 
       await register(userData);
-      showSuccessToast('Hesabınız başarıyla oluşturuldu!', 'Kayıt Başarılı');
+      showSuccessToast('Hesabınız başarıyla oluşturuldu!', 'Registration Successful');
       // Navigation otomatik olarak AuthNavigator tarafından yönetilecek
     } catch (error) {
       // Backend'den gelen hata mesajlarını göster
@@ -101,7 +101,7 @@ const RegisterScreen = ({ navigation }) => {
                  errorMessage.toLowerCase().includes('bağlan')) {
         showErrorToast('Sunucuya bağlanılamadı. İnternet bağlantınızı kontrol edin.', 'Bağlantı Hatası');
       } else {
-        showErrorToast(errorMessage, 'Kayıt Hatası');
+        showErrorToast(errorMessage, 'Registration Error');
       }
     }
   };
@@ -173,7 +173,7 @@ const RegisterScreen = ({ navigation }) => {
             />
 
             <Input
-              label="Şifre Tekrar"
+              label="Confirm Password"
               value={formData.confirmPassword}
               onChangeText={(text) => updateField('confirmPassword', text)}
               placeholder="••••••••"
@@ -188,16 +188,16 @@ const RegisterScreen = ({ navigation }) => {
             />
 
             <Button
-              title="Kayıt Ol"
+              title="Sign Up"
               onPress={handleRegister}
               loading={isLoading}
               style={styles.registerButton}
             />
 
             <View style={styles.loginContainer}>
-              <Text style={styles.loginText}>Zaten hesabınız var mı? </Text>
+              <Text style={styles.loginText}>Already have an account? </Text>
               <TouchableOpacity onPress={() => navigation.navigate('Login')}>
-                <Text style={styles.loginLink}>Giriş Yapın</Text>
+                <Text style={styles.loginLink}>Log In</Text>
               </TouchableOpacity>
             </View>
           </View>

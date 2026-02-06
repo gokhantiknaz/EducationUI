@@ -14,9 +14,15 @@ const RootNavigator = () => {
     loadUser();
   }, []);
 
+  useEffect(() => {
+    console.log('RootNavigator - isAuthenticated changed:', isAuthenticated);
+  }, [isAuthenticated]);
+
   if (isLoading) {
     return <Loading text="Yükleniyor..." />;
   }
+
+  console.log('RootNavigator rendering - isAuthenticated:', isAuthenticated);
 
   return (
     <NavigationContainer>

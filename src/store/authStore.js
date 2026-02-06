@@ -61,16 +61,20 @@ const useAuthStore = create((set, get) => ({
 
   // Logout
   logout: async () => {
+    console.log('authStore - logout başladı');
     set({ isLoading: true });
     try {
       await authService.logout();
+      console.log('authService.logout başarılı');
       set({
         user: null,
         isAuthenticated: false,
         isLoading: false,
         error: null,
       });
+      console.log('authStore - state güncellendi, isAuthenticated: false');
     } catch (error) {
+      console.error('authStore - logout hatası:', error);
       set({
         error: error.message,
         isLoading: false,

@@ -12,6 +12,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { COLORS, SIZES, SHADOWS } from '../constants/theme';
 import Button from '../components/Button';
 import courseService from '../services/courseService';
+import { showInfoToast } from '../utils/toast';
 
 const CourseDetailScreen = ({ route, navigation }) => {
   const { courseId } = route.params;
@@ -48,11 +49,68 @@ const CourseDetailScreen = ({ route, navigation }) => {
   const handleEnroll = async () => {
     // TODO: Satın alma işlemi
     console.log('Kursu satın al:', courseId);
+    showInfoToast('Satın alma özelliği yakında eklenecek.', 'Bilgi');
+  };
+
+  // Tüm dersleri düz bir liste olarak al
+  const getAllLessons = () => {
+    if (!course?.sections) return [];
+
+    const allLessons = [];
+    course.sections.forEach((section, sectionIndex) => {
+      if (section.lessons) {
+        section.lessons.forEach((lesson, lessonIndex) => {
+          allLessons.push({
+            ...lesson,
+            sectionTitle: section.title,
+            sectionIndex,
+            lessonIndex,
+            // Test için örnek YouTube video ID'leri
+            videoUrl: lesson.videoUrl || getTestVideoId(allLessons.length),
+          });
+        });
+      }
+    });
+    return allLessons;
+  };
+
+  // Test için örnek YouTube video ID'leri
+  const getTestVideoId = (index) => {
+    const testVideos = [
+      'dQw4w9WgXcQ',  // Örnek video 1
+      'jNQXAC9IVRw',  // Örnek video 2
+      '9bZkp7q19f0',  // Örnek video 3
+      'kJQP7kiw5Fk',  // Örnek video 4
+    ];
+    return testVideos[index % testVideos.length];
   };
 
   const handleContinueLearning = () => {
-    // TODO: İlk tamamlanmamış derse git
-    console.log('Öğrenmeye devam et:', courseId);
+    const allLessons = getAllLessons();
+
+    if (allLessons.length === 0) {
+      showInfoToast('Bu kursta henüz ders bulunmuyor.', 'Bilgi');
+      return;
+    }
+
+    // İlk tamamlanmamış dersi bul veya ilk dersten başla
+    const nextLesson = allLessons.find(l => !l.isCompleted) || allLessons[0];
+
+    navigation.navigate('VideoPlayer', {
+      lesson: nextLesson,
+      courseId: course.id,
+      courseName: course.title,
+      lessons: allLessons,
+    });
+  };
+
+  const handleLessonPress = (lesson, allLessons) => {
+    navigation.navigate('VideoPlayer', {
+      lesson,
+      courseId: course.id,
+      courseName: course.title,
+      lessons: allLessons,
+    });
   };
 
   if (isLoading) {
@@ -60,7 +118,7 @@ const CourseDetailScreen = ({ route, navigation }) => {
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={COLORS.primary} />
-          <Text style={styles.loadingText}>Yükleniyor...</Text>
+          <Text style={styles.loadingText}>Loading...</Text>
         </View>
       </SafeAreaView>
     );
@@ -72,7 +130,7 @@ const CourseDetailScreen = ({ route, navigation }) => {
         <View style={styles.errorContainer}>
           <Text style={styles.errorText}>{error}</Text>
           <Button
-            title="Tekrar Dene"
+            title="Retry"
             onPress={loadCourseDetail}
             variant="primary"
             style={styles.retryButton}
@@ -86,9 +144,9 @@ const CourseDetailScreen = ({ route, navigation }) => {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>Kurs bulunamadı</Text>
+          <Text style={styles.errorText}>Course not found</Text>
           <Button
-            title="Geri Dön"
+            title="Go Back"
             onPress={() => navigation.goBack()}
             variant="outline"
             style={styles.retryButton}
@@ -130,11 +188,11 @@ const CourseDetailScreen = ({ route, navigation }) => {
           {/* Course Stats */}
           <View style={styles.statsContainer}>
             <View style={styles.statItem}>
-              <Text style={styles.statLabel}>Seviye</Text>
-              <Text style={styles.statValue}>{course.level || 'Başlangıç'}</Text>
+              <Text style={styles.statLabel}>Level</Text>
+              <Text style={styles.statValue}>{course.level || 'Beginner'}</Text>
             </View>
             <View style={styles.statItem}>
-              <Text style={styles.statLabel}>Süre</Text>
+              <Text style={styles.statLabel}>Duration</Text>
               <Text style={styles.statValue}>
                 {course.durationMinutes
                   ? `${Math.floor(course.durationMinutes / 60)}s ${course.durationMinutes % 60}dk`
@@ -142,9 +200,9 @@ const CourseDetailScreen = ({ route, navigation }) => {
               </Text>
             </View>
             <View style={styles.statItem}>
-              <Text style={styles.statLabel}>Fiyat</Text>
+              <Text style={styles.statLabel}>Price</Text>
               <Text style={styles.statValue}>
-                {course.price > 0 ? `${course.price} ₺` : 'Ücretsiz'}
+                {course.price > 0 ? `${course.price} ₺` : 'Free'}
               </Text>
             </View>
           </View>
@@ -153,7 +211,7 @@ const CourseDetailScreen = ({ route, navigation }) => {
           {isEnrolled && (
             <View style={styles.enrollmentStatus}>
               <Text style={styles.enrollmentStatusText}>
-                ✓ Bu kursa kayıtlısınız
+                ✓ You are enrolled in this course
               </Text>
               {enrollmentStatus.progressPercentage > 0 && (
                 <View style={styles.progressContainer}>
@@ -166,7 +224,7 @@ const CourseDetailScreen = ({ route, navigation }) => {
                     />
                   </View>
                   <Text style={styles.progressText}>
-                    {Math.round(enrollmentStatus.progressPercentage)}% tamamlandı
+                    {Math.round(enrollmentStatus.progressPercentage)}% completed
                   </Text>
                 </View>
               )}
@@ -176,24 +234,66 @@ const CourseDetailScreen = ({ route, navigation }) => {
           {/* Course Sections */}
           {course.sections && course.sections.length > 0 && (
             <View style={styles.sectionsContainer}>
-              <Text style={styles.sectionTitle}>Kurs İçeriği</Text>
-              {course.sections.map((section, index) => (
-                <View key={section.id || index} style={styles.sectionCard}>
-                  <Text style={styles.sectionName}>{section.title}</Text>
-                  {section.lessons && (
-                    <Text style={styles.sectionLessonCount}>
-                      {section.lessons.length} ders
-                    </Text>
-                  )}
-                </View>
-              ))}
+              <Text style={styles.sectionTitle}>Course Content</Text>
+              {course.sections.map((section, sectionIndex) => {
+                const allLessons = getAllLessons();
+                return (
+                  <View key={section.id || sectionIndex} style={styles.sectionCard}>
+                    <View style={styles.sectionHeader}>
+                      <Text style={styles.sectionName}>{section.title}</Text>
+                      {section.lessons && (
+                        <Text style={styles.sectionLessonCount}>
+                          {section.lessons.length} lessons
+                        </Text>
+                      )}
+                    </View>
+                    {/* Lesson List */}
+                    {section.lessons && section.lessons.map((lesson, lessonIndex) => {
+                      const lessonWithVideo = {
+                        ...lesson,
+                        sectionTitle: section.title,
+                        videoUrl: lesson.videoUrl || getTestVideoId(sectionIndex * 10 + lessonIndex),
+                      };
+                      return (
+                        <TouchableOpacity
+                          key={lesson.id || lessonIndex}
+                          style={styles.lessonItem}
+                          onPress={() => handleLessonPress(lessonWithVideo, allLessons)}
+                          disabled={!isEnrolled}
+                        >
+                          <View style={styles.lessonNumber}>
+                            <Text style={styles.lessonNumberText}>
+                              {lesson.isCompleted ? '✓' : lessonIndex + 1}
+                            </Text>
+                          </View>
+                          <View style={styles.lessonInfo}>
+                            <Text style={styles.lessonTitle} numberOfLines={2}>
+                              {lesson.title}
+                            </Text>
+                            {lesson.durationMinutes && (
+                              <Text style={styles.lessonDuration}>
+                                {lesson.durationMinutes} dk
+                              </Text>
+                            )}
+                          </View>
+                          {isEnrolled ? (
+                            <Text style={styles.playIcon}>▶</Text>
+                          ) : (
+                            <Text style={styles.lockIcon}>🔒</Text>
+                          )}
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                );
+              })}
             </View>
           )}
 
           {/* What You'll Learn */}
           {course.learningOutcomes && course.learningOutcomes.length > 0 && (
             <View style={styles.learningOutcomesContainer}>
-              <Text style={styles.sectionTitle}>Neler Öğreneceksiniz</Text>
+              <Text style={styles.sectionTitle}>What You'll Learn</Text>
               {course.learningOutcomes.map((outcome, index) => (
                 <View key={index} style={styles.outcomeItem}>
                   <Text style={styles.outcomeIcon}>✓</Text>
@@ -206,7 +306,7 @@ const CourseDetailScreen = ({ route, navigation }) => {
           {/* Requirements */}
           {course.requirements && course.requirements.length > 0 && (
             <View style={styles.requirementsContainer}>
-              <Text style={styles.sectionTitle}>Gereksinimler</Text>
+              <Text style={styles.sectionTitle}>Requirements</Text>
               {course.requirements.map((requirement, index) => (
                 <View key={index} style={styles.requirementItem}>
                   <Text style={styles.requirementBullet}>•</Text>
@@ -219,7 +319,7 @@ const CourseDetailScreen = ({ route, navigation }) => {
           {/* Instructor Info */}
           {course.instructor && (
             <View style={styles.instructorContainer}>
-              <Text style={styles.sectionTitle}>Eğitmen</Text>
+              <Text style={styles.sectionTitle}>Instructor</Text>
               <View style={styles.instructorCard}>
                 <View style={styles.instructorAvatar}>
                   <Text style={styles.instructorAvatarText}>
@@ -247,7 +347,7 @@ const CourseDetailScreen = ({ route, navigation }) => {
       <View style={styles.bottomBar}>
         {isEnrolled ? (
           <Button
-            title="Öğrenmeye Devam Et"
+            title="Continue Learning"
             onPress={handleContinueLearning}
             variant="primary"
             size="large"
@@ -255,7 +355,7 @@ const CourseDetailScreen = ({ route, navigation }) => {
           />
         ) : (
           <Button
-            title={course.price > 0 ? `${course.price} ₺ - Satın Al` : 'Ücretsiz Kaydol'}
+            title={course.price > 0 ? `${course.price} ₺ - Purchase` : 'Free Kaydol'}
             onPress={handleEnroll}
             variant="primary"
             size="large"
@@ -406,18 +506,66 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.card,
     borderRadius: SIZES.radius,
     padding: SIZES.padding,
-    marginBottom: SIZES.paddingSmall,
+    marginBottom: SIZES.padding,
     ...SHADOWS.small,
   },
+  sectionHeader: {
+    marginBottom: SIZES.padding,
+    paddingBottom: SIZES.paddingSmall,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
   sectionName: {
-    fontSize: SIZES.body2,
+    fontSize: SIZES.body1,
     fontWeight: '600',
     color: COLORS.text,
-    marginBottom: SIZES.paddingSmall,
+    marginBottom: 4,
   },
   sectionLessonCount: {
     fontSize: SIZES.body3,
     color: COLORS.textLight,
+  },
+  lessonItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: SIZES.paddingSmall,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  lessonNumber: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: COLORS.background,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: SIZES.padding,
+  },
+  lessonNumberText: {
+    fontSize: SIZES.body3,
+    fontWeight: '600',
+    color: COLORS.textLight,
+  },
+  lessonInfo: {
+    flex: 1,
+  },
+  lessonTitle: {
+    fontSize: SIZES.body2,
+    color: COLORS.text,
+    marginBottom: 2,
+  },
+  lessonDuration: {
+    fontSize: SIZES.body3,
+    color: COLORS.textLight,
+  },
+  playIcon: {
+    fontSize: 16,
+    color: COLORS.primary,
+    marginLeft: SIZES.paddingSmall,
+  },
+  lockIcon: {
+    fontSize: 14,
+    marginLeft: SIZES.paddingSmall,
   },
   learningOutcomesContainer: {
     marginBottom: SIZES.paddingLarge,

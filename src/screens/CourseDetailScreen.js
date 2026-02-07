@@ -65,24 +65,11 @@ const CourseDetailScreen = ({ route, navigation }) => {
             sectionTitle: section.title,
             sectionIndex,
             lessonIndex,
-            // Test için örnek YouTube video ID'leri
-            videoUrl: lesson.videoUrl || getTestVideoId(allLessons.length),
           });
         });
       }
     });
     return allLessons;
-  };
-
-  // Test için örnek YouTube video ID'leri
-  const getTestVideoId = (index) => {
-    const testVideos = [
-      'dQw4w9WgXcQ',  // Örnek video 1
-      'jNQXAC9IVRw',  // Örnek video 2
-      '9bZkp7q19f0',  // Örnek video 3
-      'kJQP7kiw5Fk',  // Örnek video 4
-    ];
-    return testVideos[index % testVideos.length];
   };
 
   const handleContinueLearning = () => {
@@ -250,6 +237,7 @@ const CourseDetailScreen = ({ route, navigation }) => {
               <Text style={styles.sectionTitle}>Course Content</Text>
               {course.sections.map((section, sectionIndex) => {
                 const allLessons = getAllLessons();
+
                 return (
                   <View key={section.id || sectionIndex} style={styles.sectionCard}>
                     <View style={styles.sectionHeader}>
@@ -262,16 +250,15 @@ const CourseDetailScreen = ({ route, navigation }) => {
                     </View>
                     {/* Lesson List */}
                     {section.lessons && section.lessons.map((lesson, lessonIndex) => {
-                      const lessonWithVideo = {
+                      const lessonWithSection = {
                         ...lesson,
                         sectionTitle: section.title,
-                        videoUrl: lesson.videoUrl || getTestVideoId(sectionIndex * 10 + lessonIndex),
                       };
                       return (
                         <TouchableOpacity
                           key={lesson.id || lessonIndex}
                           style={styles.lessonItem}
-                          onPress={() => handleLessonPress(lessonWithVideo, allLessons)}
+                          onPress={() => handleLessonPress(lessonWithSection, allLessons)}
                           disabled={!isEnrolled && !lesson.isFree}
                         >
                           <View style={styles.lessonNumber}>

@@ -108,6 +108,18 @@ class CourseService {
     }
   }
 
+  // Dersi tamamlandı olarak işaretle (Requires Auth)
+  async markLessonComplete(lessonId) {
+    try {
+      const response = await apiClient.post(API_ENDPOINTS.SAVE_LESSON_PROGRESS(lessonId), {
+        isCompleted: true,
+      });
+      return response.data.success ? response.data.data : response.data;
+    } catch (error) {
+      throw this.handleError(error);
+    }
+  }
+
   // Kategorileri getir (Public)
   async getCategories(isActive = true) {
     try {

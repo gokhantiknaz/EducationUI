@@ -49,8 +49,7 @@ const DashboardScreen = ({ navigation }) => {
 
   const handleProfilePress = () => {
     setShowDropdown(false);
-    // TODO: Navigate to Profile screen
-    console.log('Navigate to Profile');
+    navigation.navigate('Profile');
   };
 
   if (isLoading) {

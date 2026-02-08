@@ -6,6 +6,7 @@ import DashboardScreen from '../screens/DashboardScreen';
 import SearchScreen from '../screens/SearchScreen';
 import MyCoursesScreen from '../screens/MyCoursesScreen';
 import MyListScreen from '../screens/MyListScreen';
+import ProfileScreen from '../screens/ProfileScreen';
 import CourseDetailScreen from '../screens/CourseDetailScreen';
 import VideoPlayerScreen from '../screens/VideoPlayerScreen';
 import {COLORS} from '../constants/theme';
@@ -65,6 +66,16 @@ const TabNavigator = () => {
                     tabBarLabel: 'My List',
                     tabBarIcon: ({color, size}) => (
                         <Text style={{fontSize: size, color}}>❤️</Text>
+                    ),
+                }}
+            />
+            <Tab.Screen
+                name="Profile"
+                component={ProfileScreen}
+                options={{
+                    tabBarLabel: 'Profil',
+                    tabBarIcon: ({color, size}) => (
+                        <Text style={{fontSize: size, color}}>👤</Text>
                     ),
                 }}
             />

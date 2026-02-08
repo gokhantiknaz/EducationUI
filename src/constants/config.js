@@ -18,9 +18,12 @@ export const API_ENDPOINTS = {
 
   // User
   USER_PROFILE: '/users/me',
+  USER_FULL_PROFILE: '/users/me/profile',
   UPDATE_PROFILE: '/users/me',
   CHANGE_PASSWORD: '/users/me/password',
   UPLOAD_AVATAR: '/users/me/avatar',
+  PROFESSIONS: '/users/professions',
+  INTEREST_TAGS: '/users/interests',
 
   // Courses (Public)
   COURSES: '/courses',

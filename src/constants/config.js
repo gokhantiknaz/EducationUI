@@ -42,6 +42,7 @@ export const API_ENDPOINTS = {
   LESSON_STREAM_URL: (lessonId) => `/lessons/${lessonId}/stream-url`,
   LESSON_PROGRESS: (lessonId) => `/lessons/${lessonId}/progress`,
   SAVE_LESSON_PROGRESS: (lessonId) => `/lessons/${lessonId}/progress`,
+  COURSE_LESSONS_PROGRESS: (courseId) => `/lessons/course/${courseId}/progress`,
 
   // Orders (Requires Auth)
   CREATE_ORDER: '/orders/create',

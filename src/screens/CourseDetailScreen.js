@@ -18,12 +18,23 @@ const CourseDetailScreen = ({ route, navigation }) => {
   const { courseId } = route.params;
   const [course, setCourse] = useState(null);
   const [enrollmentStatus, setEnrollmentStatus] = useState(null);
+  const [lessonsProgress, setLessonsProgress] = useState({});
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
     loadCourseDetail();
   }, [courseId]);
+
+  // Sayfa focus olduğunda progress'i yeniden yükle
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', () => {
+      if (enrollmentStatus?.isEnrolled) {
+        loadLessonsProgress();
+      }
+    });
+    return unsubscribe;
+  }, [navigation, enrollmentStatus]);
 
   const loadCourseDetail = async () => {
     try {
@@ -38,11 +49,34 @@ const CourseDetailScreen = ({ route, navigation }) => {
 
       setCourse(courseData);
       setEnrollmentStatus(statusData);
+
+      // Eğer kayıtlıysa ders ilerlemelerini de al
+      if (statusData?.isEnrolled) {
+        const progressData = await courseService.getCourseLessonsProgress(courseId).catch(() => []);
+        const progressMap = {};
+        progressData.forEach(p => {
+          progressMap[p.lessonId] = p;
+        });
+        setLessonsProgress(progressMap);
+      }
     } catch (err) {
       console.error('Kurs detayı yüklenemedi:', err);
       setError(err.message || 'Kurs detayları yüklenirken bir hata oluştu');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const loadLessonsProgress = async () => {
+    try {
+      const progressData = await courseService.getCourseLessonsProgress(courseId).catch(() => []);
+      const progressMap = {};
+      progressData.forEach(p => {
+        progressMap[p.lessonId] = p;
+      });
+      setLessonsProgress(progressMap);
+    } catch (err) {
+      console.log('Progress yüklenemedi:', err);
     }
   };
 
@@ -254,6 +288,12 @@ const CourseDetailScreen = ({ route, navigation }) => {
                         ...lesson,
                         sectionTitle: section.title,
                       };
+                      const progress = lessonsProgress[lesson.id];
+                      const isCompleted = progress?.isCompleted;
+                      const watchedPercent = progress && progress.totalSeconds > 0
+                        ? Math.round((progress.watchedSeconds / progress.totalSeconds) * 100)
+                        : 0;
+
                       return (
                         <TouchableOpacity
                           key={lesson.id || lessonIndex}
@@ -261,9 +301,15 @@ const CourseDetailScreen = ({ route, navigation }) => {
                           onPress={() => handleLessonPress(lessonWithSection, allLessons)}
                           disabled={!isEnrolled && !lesson.isFree}
                         >
-                          <View style={styles.lessonNumber}>
-                            <Text style={styles.lessonNumberText}>
-                              {lesson.isCompleted ? '✓' : lessonIndex + 1}
+                          <View style={[
+                            styles.lessonNumber,
+                            isCompleted && styles.lessonNumberCompleted
+                          ]}>
+                            <Text style={[
+                              styles.lessonNumberText,
+                              isCompleted && styles.lessonNumberTextCompleted
+                            ]}>
+                              {isCompleted ? '✓' : lessonIndex + 1}
                             </Text>
                           </View>
                           <View style={styles.lessonInfo}>
@@ -281,10 +327,21 @@ const CourseDetailScreen = ({ route, navigation }) => {
                                   <Text style={styles.freeBadgeText}>Ücretsiz</Text>
                                 </View>
                               )}
+                              {isEnrolled && watchedPercent > 0 && !isCompleted && (
+                                <View style={styles.progressBadge}>
+                                  <Text style={styles.progressBadgeText}>%{watchedPercent}</Text>
+                                </View>
+                              )}
                             </View>
+                            {/* Lesson progress bar */}
+                            {isEnrolled && watchedPercent > 0 && (
+                              <View style={styles.lessonProgressBar}>
+                                <View style={[styles.lessonProgressFill, { width: `${watchedPercent}%` }]} />
+                              </View>
+                            )}
                           </View>
                           {isEnrolled || lesson.isFree ? (
-                            <Text style={styles.playIcon}>▶</Text>
+                            <Text style={styles.playIcon}>{isCompleted ? '✓' : '▶'}</Text>
                           ) : (
                             <Text style={styles.lockIcon}>🔒</Text>
                           )}
@@ -587,6 +644,36 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: COLORS.success,
     fontWeight: '600',
+  },
+  progressBadge: {
+    backgroundColor: COLORS.primary + '20',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    marginLeft: 8,
+  },
+  progressBadgeText: {
+    fontSize: 10,
+    color: COLORS.primary,
+    fontWeight: '600',
+  },
+  lessonProgressBar: {
+    height: 3,
+    backgroundColor: COLORS.border,
+    borderRadius: 2,
+    marginTop: 6,
+    overflow: 'hidden',
+  },
+  lessonProgressFill: {
+    height: '100%',
+    backgroundColor: COLORS.primary,
+    borderRadius: 2,
+  },
+  lessonNumberCompleted: {
+    backgroundColor: COLORS.success,
+  },
+  lessonNumberTextCompleted: {
+    color: COLORS.white,
   },
   playIcon: {
     fontSize: 16,

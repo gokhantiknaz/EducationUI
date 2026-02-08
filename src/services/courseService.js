@@ -97,6 +97,16 @@ class CourseService {
     }
   }
 
+  // Kurs için tüm ders ilerlemelerini getir (Requires Auth)
+  async getCourseLessonsProgress(courseId) {
+    try {
+      const response = await apiClient.get(API_ENDPOINTS.COURSE_LESSONS_PROGRESS(courseId));
+      return response.data.success ? response.data.data : response.data;
+    } catch (error) {
+      throw this.handleError(error);
+    }
+  }
+
   // Ders ilerlemesini kaydet (Requires Auth)
   // data: { watchedSeconds, lastPosition, isCompleted }
   async saveLessonProgress(lessonId, progressData) {

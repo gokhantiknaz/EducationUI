@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
     View,
     Text,
@@ -9,6 +9,9 @@ import {
     ScrollView,
     ActivityIndicator,
     BackHandler,
+    Modal,
+    Platform,
+    useWindowDimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useVideoPlayer, VideoView } from 'expo-video';
@@ -16,28 +19,23 @@ import { useEvent } from 'expo';
 import * as ScreenOrientation from 'expo-screen-orientation';
 import { COLORS, SIZES, SHADOWS } from '../constants/theme';
 import useCourseStore from '../store/courseStore';
-import { showSuccessToast, showErrorToast } from '../utils/toast';
+import courseService from '../services/courseService';
+import { showSuccessToast, showErrorToast, showInfoToast } from '../utils/toast';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
-
-// Default CDN URL
 const DEFAULT_VIDEO_URL = 'https://d3dcmqyicbxyjj.cloudfront.net/raw/sample-20s.mp4';
+const PROGRESS_SAVE_INTERVAL = 10000; // 10 saniyede bir kaydet
 
-// Validate and get proper video URL
 const getValidVideoUrl = (url) => {
     if (!url) return DEFAULT_VIDEO_URL;
-
-    // If it's a full URL, use it
-    if (url.startsWith('http://') || url.startsWith('https://')) {
-        return url;
-    }
-
+    if (url.startsWith('http://') || url.startsWith('https://')) return url;
     console.warn('Invalid video URL', url);
     return DEFAULT_VIDEO_URL;
 };
 
 const VideoPlayerScreen = ({ navigation, route }) => {
     const { lesson, courseName, lessons = [] } = route.params || {};
+
+    const { width: winW, height: winH } = useWindowDimensions();
 
     const [isFullScreen, setIsFullScreen] = useState(false);
     const [currentLessonIndex, setCurrentLessonIndex] = useState(0);
@@ -46,37 +44,169 @@ const VideoPlayerScreen = ({ navigation, route }) => {
     const [currentTime, setCurrentTime] = useState(0);
     const [videoDuration, setVideoDuration] = useState(0);
     const [showControls, setShowControls] = useState(true);
+    const [resumePosition, setResumePosition] = useState(0);
+    const [hasResumed, setHasResumed] = useState(false);
+    const [lessonsProgress, setLessonsProgress] = useState({});
+
+    // Settings / Speed
+    const [settingsOpen, setSettingsOpen] = useState(false);
+    const [playbackRate, setPlaybackRate] = useState(1);
 
     const isMounted = useRef(true);
     const controlsTimeout = useRef(null);
-    const videoRef = useRef(null);
+    const progressSaveInterval = useRef(null);
+    const lastSavedTime = useRef(0);
+    const currentTimeRef = useRef(0);
+    const videoDurationRef = useRef(0);
+    const currentLessonRef = useRef(currentLesson);
 
     const { markLessonComplete } = useCourseStore();
 
-    // Video URL - validate and use CDN URL
+    // Ref'leri güncel tut
+    useEffect(() => {
+        currentTimeRef.current = currentTime;
+    }, [currentTime]);
+
+    useEffect(() => {
+        videoDurationRef.current = videoDuration;
+    }, [videoDuration]);
+
+    useEffect(() => {
+        currentLessonRef.current = currentLesson;
+    }, [currentLesson]);
+
+    // Tek ders ilerlemesini yükle
+    const loadLessonProgress = useCallback(async (lessonId) => {
+        try {
+            console.log('Loading progress for lesson:', lessonId);
+            const progress = await courseService.getLessonProgress(lessonId);
+            console.log('Progress loaded:', progress);
+            if (progress && progress.lastWatchedPosition > 0 && !progress.isCompleted) {
+                setResumePosition(progress.lastWatchedPosition);
+                setHasResumed(false);
+                return progress.lastWatchedPosition;
+            }
+        } catch (err) {
+            console.log('Progress yüklenemedi:', err);
+        }
+        return 0;
+    }, []);
+
+    // Tüm derslerin ilerlemesini yükle
+    const loadAllLessonsProgress = useCallback(async () => {
+        const { courseId } = route.params || {};
+        if (!courseId) return;
+
+        try {
+            const progressData = await courseService.getCourseLessonsProgress(courseId);
+            const progressMap = {};
+            progressData.forEach(p => {
+                progressMap[p.lessonId] = p;
+            });
+            setLessonsProgress(progressMap);
+        } catch (err) {
+            console.log('Tüm progress yüklenemedi:', err);
+        }
+    }, [route.params]);
+
+    // İlerlemeyi kaydet
+    const saveProgress = useCallback(async (force = false) => {
+        const lessonId = currentLessonRef.current?.id;
+        if (!lessonId || !isMounted.current) return;
+
+        const currentPos = Math.floor(currentTimeRef.current);
+        const duration = Math.floor(videoDurationRef.current);
+
+        // 0 saniye ise kaydetme
+        if (currentPos <= 0) return;
+
+        // Son kaydedilen ile aynıysa kaydetme (force değilse)
+        if (!force && Math.abs(currentPos - lastSavedTime.current) < 5) return;
+
+        const isCompleted = duration > 0 && currentPos / duration >= 0.9;
+
+        try {
+            console.log('Saving progress:', { lessonId, currentPos, duration });
+            await courseService.saveLessonProgress(lessonId, {
+                watchedSeconds: currentPos,
+                lastPosition: currentPos,
+                isCompleted,
+            });
+            lastSavedTime.current = currentPos;
+            console.log('Progress saved successfully');
+
+            // Local state'i güncelle
+            setLessonsProgress(prev => ({
+                ...prev,
+                [lessonId]: {
+                    lessonId,
+                    watchedSeconds: currentPos,
+                    totalSeconds: duration,
+                    lastWatchedPosition: currentPos,
+                    isCompleted,
+                }
+            }));
+        } catch (err) {
+            console.log('Progress kaydedilemedi:', err);
+        }
+    }, []);
+
     const videoUrl = getValidVideoUrl(currentLesson?.videoUrl);
 
-    // Create video player
     const player = useVideoPlayer(videoUrl, (p) => {
         p.loop = true;
         p.play();
     });
 
-    // Listen to playing state changes
     const { isPlaying } = useEvent(player, 'playingChange', { isPlaying: player.playing });
-
-    // Listen to status changes
     const { status } = useEvent(player, 'statusChange', { status: player.status });
 
-    // Set mounted ref
     useEffect(() => {
         isMounted.current = true;
+        loadAllLessonsProgress();
         return () => {
             isMounted.current = false;
+            if (progressSaveInterval.current) {
+                clearInterval(progressSaveInterval.current);
+            }
         };
     }, []);
 
-    // Update loading state based on status
+    // Ekrandan çıkarken progress kaydet
+    useEffect(() => {
+        const unsubscribe = navigation.addListener('beforeRemove', async (e) => {
+            console.log('beforeRemove - saving progress');
+            const lessonId = currentLessonRef.current?.id;
+            const currentPos = Math.floor(currentTimeRef.current);
+            const duration = Math.floor(videoDurationRef.current);
+
+            if (lessonId && currentPos > 0) {
+                try {
+                    console.log('Saving on exit:', { lessonId, currentPos, duration });
+                    await courseService.saveLessonProgress(lessonId, {
+                        watchedSeconds: currentPos,
+                        lastPosition: currentPos,
+                        isCompleted: duration > 0 && currentPos / duration >= 0.9,
+                    });
+                    console.log('Progress saved on exit');
+                } catch (err) {
+                    console.error('Failed to save progress on exit:', err);
+                }
+            }
+        });
+        return unsubscribe;
+    }, [navigation]);
+
+    // Ders değiştiğinde ilerlemeyi yükle
+    useEffect(() => {
+        if (currentLesson?.id) {
+            setHasResumed(false);
+            setResumePosition(0);
+            lastSavedTime.current = 0;
+            loadLessonProgress(currentLesson.id);
+        }
+    }, [currentLesson?.id, loadLessonProgress]);
+
     useEffect(() => {
         if (!isMounted.current) return;
 
@@ -84,16 +214,29 @@ const VideoPlayerScreen = ({ navigation, route }) => {
             setIsLoading(false);
             try {
                 setVideoDuration(player.duration || 0);
-            } catch (e) {}
+
+                // Kaldığı yerden devam et
+                if (resumePosition > 0 && !hasResumed) {
+                    setTimeout(() => {
+                        try {
+                            console.log('Resuming from position:', resumePosition);
+                            player.currentTime = resumePosition;
+                            setHasResumed(true);
+                            showInfoToast(`${Math.floor(resumePosition)}. saniyeden devam ediliyor`, 'Devam');
+                        } catch (e) {
+                            console.log('Seek error:', e);
+                        }
+                    }, 500);
+                }
+            } catch {}
         } else if (status === 'loading') {
             setIsLoading(true);
         } else if (status === 'error') {
             setIsLoading(false);
             showErrorToast('Video yüklenemedi', 'Hata');
         }
-    }, [status]);
+    }, [status, resumePosition, hasResumed]);
 
-    // Track current time
     useEffect(() => {
         if (!player) return;
 
@@ -104,30 +247,26 @@ const VideoPlayerScreen = ({ navigation, route }) => {
                 if (player.currentTime !== undefined) {
                     setCurrentTime(player.currentTime);
 
-                    // Check if video is near completion (90%)
                     if (player.duration > 0 && player.currentTime / player.duration >= 0.9) {
                         if (currentLesson?.id && !currentLesson?.isCompleted) {
                             handleLessonComplete();
                         }
                     }
                 }
-            } catch (e) {}
+            } catch {}
         }, 500);
 
         return () => clearInterval(interval);
     }, [player, currentLesson]);
 
-    // Find current lesson index
     useEffect(() => {
         if (lessons.length > 0 && lesson) {
             const index = lessons.findIndex((l) => l.id === lesson.id);
-            if (index !== -1) {
-                setCurrentLessonIndex(index);
-            }
+            if (index !== -1) setCurrentLessonIndex(index);
         }
     }, [lessons, lesson]);
 
-    // Back button handler (Android) - exit fullscreen if active
+    // Android back: fullscreen'den çık
     useEffect(() => {
         const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
             if (isFullScreen) {
@@ -140,19 +279,18 @@ const VideoPlayerScreen = ({ navigation, route }) => {
         return () => backHandler.remove();
     }, [isFullScreen]);
 
-    // Cleanup on unmount
+    // Unmount cleanup
     useEffect(() => {
         return () => {
             ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
         };
     }, []);
 
-    // Update video source when lesson changes
+    // Lesson değişince source değiştir
     useEffect(() => {
         if (!player || !isMounted.current) return;
 
         const newUrl = getValidVideoUrl(currentLesson?.videoUrl);
-
         try {
             setIsLoading(true);
             setCurrentTime(0);
@@ -170,9 +308,7 @@ const VideoPlayerScreen = ({ navigation, route }) => {
             showSuccessToast('Ders tamamlandı!', 'Tebrikler');
 
             if (currentLessonIndex < lessons.length - 1) {
-                setTimeout(() => {
-                    goToNextLesson();
-                }, 2000);
+                setTimeout(() => goToNextLesson(), 2000);
             } else {
                 showSuccessToast('Tüm dersler tamamlandı!', 'Kurs Bitti');
             }
@@ -183,7 +319,6 @@ const VideoPlayerScreen = ({ navigation, route }) => {
 
     const togglePlayPause = () => {
         if (!player) return;
-
         try {
             if (isPlaying) player.pause();
             else player.play();
@@ -192,27 +327,19 @@ const VideoPlayerScreen = ({ navigation, route }) => {
         }
     };
 
-    // ✅ Native fullscreen (asıl fix burada)
     const enterFullScreen = async () => {
         try {
-            await videoRef.current?.enterFullscreen?.();
-            // isFullScreen state'i onFullscreenEnter ile setlenecek
-        } catch (e) {
-            // Bazı sürümlerde method yoksa fallback: sadece rotate (en azından çalışsın)
-            console.log('enterFullscreen error (fallback rotate):', e);
+            // iOS'ta Orientation lock için bu yeterli (app fullscreen)
             await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE);
-        }
+        } catch {}
+        setIsFullScreen(true);
     };
 
     const exitFullScreen = async () => {
         try {
-            await videoRef.current?.exitFullscreen?.();
-            // isFullScreen state'i onFullscreenExit ile setlenecek
-        } catch (e) {
-            console.log('exitFullscreen error (fallback rotate):', e);
             await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
-            setIsFullScreen(false);
-        }
+        } catch {}
+        setIsFullScreen(false);
     };
 
     const toggleFullscreen = () => {
@@ -220,23 +347,26 @@ const VideoPlayerScreen = ({ navigation, route }) => {
         else enterFullScreen();
     };
 
-    const goToNextLesson = () => {
+    const goToNextLesson = async () => {
         if (currentLessonIndex < lessons.length - 1) {
+            await saveProgress(true);
             const nextLesson = lessons[currentLessonIndex + 1];
             setCurrentLessonIndex(currentLessonIndex + 1);
             setCurrentLesson(nextLesson);
         }
     };
 
-    const goToPreviousLesson = () => {
+    const goToPreviousLesson = async () => {
         if (currentLessonIndex > 0) {
+            await saveProgress(true);
             const prevLesson = lessons[currentLessonIndex - 1];
             setCurrentLessonIndex(currentLessonIndex - 1);
             setCurrentLesson(prevLesson);
         }
     };
 
-    const selectLesson = (lessonItem, index) => {
+    const selectLesson = async (lessonItem, index) => {
+        await saveProgress(true);
         setCurrentLessonIndex(index);
         setCurrentLesson(lessonItem);
     };
@@ -246,7 +376,7 @@ const VideoPlayerScreen = ({ navigation, route }) => {
 
         try {
             const { locationX } = event.nativeEvent;
-            const progressBarWidth = SCREEN_WIDTH - 32;
+            const progressBarWidth = winW - 32;
             const seekPosition = (locationX / progressBarWidth) * videoDuration;
             player.seekBy(seekPosition - currentTime);
         } catch (e) {
@@ -290,15 +420,44 @@ const VideoPlayerScreen = ({ navigation, route }) => {
     useEffect(() => {
         if (isPlaying) {
             resetControlsTimeout();
+
+            // Oynatılırken periyodik kaydet
+            progressSaveInterval.current = setInterval(() => {
+                saveProgress();
+            }, PROGRESS_SAVE_INTERVAL);
         } else {
             setShowControls(true);
             if (controlsTimeout.current) clearTimeout(controlsTimeout.current);
+
+            // Durdurulunca kaydet
+            saveProgress(true);
+
+            if (progressSaveInterval.current) {
+                clearInterval(progressSaveInterval.current);
+                progressSaveInterval.current = null;
+            }
         }
 
         return () => {
             if (controlsTimeout.current) clearTimeout(controlsTimeout.current);
+            if (progressSaveInterval.current) {
+                clearInterval(progressSaveInterval.current);
+                progressSaveInterval.current = null;
+            }
         };
-    }, [isPlaying]);
+    }, [isPlaying, saveProgress]);
+
+    const setRate = (rate) => {
+        if (!player) return;
+        try {
+            player.preservesPitch = true;
+            player.playbackRate = rate;
+            setPlaybackRate(rate);
+            setSettingsOpen(false);
+        } catch (e) {
+            console.log('setRate error:', e);
+        }
+    };
 
     const formatTime = (seconds) => {
         if (!seconds || isNaN(seconds)) return '0:00';
@@ -309,19 +468,50 @@ const VideoPlayerScreen = ({ navigation, route }) => {
 
     const progress = videoDuration > 0 ? (currentTime / videoDuration) * 100 : 0;
 
+    // Video container boyutu:
+    // - Normal mod: 16:9
+    // - Fullscreen mod: absolute fill
+    const videoContainerStyle = isFullScreen
+        ? [styles.fullVideoContainer, { width: winW, height: winH }]
+        : [styles.videoContainer, { width: winW, height: (winW * 9) / 16 }];
+
     return (
         <SafeAreaView style={styles.container} edges={['top']}>
-            <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} />
+            <StatusBar
+                hidden={isFullScreen}
+                barStyle="light-content"
+                backgroundColor={COLORS.primary}
+            />
 
-            {/* Header */}
+            {/* Header fullscreen değilken */}
             {!isFullScreen && (
                 <View style={styles.header}>
                     <TouchableOpacity
                         style={styles.backButton}
-                        onPress={() => {
+                        onPress={async () => {
                             try {
                                 if (player) player.pause();
-                            } catch (e) {}
+                            } catch {}
+
+                            // Progress'i kaydet
+                            const lessonId = currentLessonRef.current?.id;
+                            const currentPos = Math.floor(currentTimeRef.current);
+                            const duration = Math.floor(videoDurationRef.current);
+
+                            if (lessonId && currentPos > 0) {
+                                try {
+                                    console.log('Saving on back:', { lessonId, currentPos, duration });
+                                    await courseService.saveLessonProgress(lessonId, {
+                                        watchedSeconds: currentPos,
+                                        lastPosition: currentPos,
+                                        isCompleted: duration > 0 && currentPos / duration >= 0.9,
+                                    });
+                                    console.log('Progress saved on back');
+                                } catch (err) {
+                                    console.error('Failed to save progress:', err);
+                                }
+                            }
+
                             navigation.goBack();
                         }}
                     >
@@ -338,43 +528,39 @@ const VideoPlayerScreen = ({ navigation, route }) => {
                 </View>
             )}
 
-            {/* Video Player */}
-            <View style={styles.videoContainer}>
+            {/* Video */}
+            <View style={videoContainerStyle}>
                 <VideoView
-                    ref={videoRef}
                     player={player}
                     style={styles.video}
                     contentFit="contain"
+                    // iOS'ta custom butonlar için nativeControls kapalı kalsın
                     nativeControls={false}
                     allowsPictureInPicture
-                    onFullscreenEnter={async () => {
-                        setIsFullScreen(true);
-                        try {
-                            await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE);
-                        } catch (e) {}
-                    }}
-                    onFullscreenExit={async () => {
-                        setIsFullScreen(false);
-                        try {
-                            await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
-                        } catch (e) {}
-                    }}
                 />
 
-                {/* Video Overlay - Tap to show/hide controls */}
-                <TouchableOpacity style={styles.videoOverlay} activeOpacity={1} onPress={toggleControls}>
+                {/* Overlay */}
+                <TouchableOpacity
+                    style={styles.videoOverlay}
+                    activeOpacity={1}
+                    onPress={toggleControls}
+                >
                     {showControls && (
                         <>
                             <View style={styles.controlsOverlay} />
 
-                            {/* Top Right - Fullscreen */}
+                            {/* Top Right buttons */}
                             <View style={styles.topControls}>
+                                <TouchableOpacity style={styles.topButton} onPress={() => setSettingsOpen(true)}>
+                                    <Text style={styles.topButtonIcon}>⚙️</Text>
+                                </TouchableOpacity>
+
                                 <TouchableOpacity style={styles.topButton} onPress={toggleFullscreen}>
                                     <Text style={styles.topButtonIcon}>{isFullScreen ? '✕' : '⛶'}</Text>
                                 </TouchableOpacity>
                             </View>
 
-                            {/* Center Controls */}
+                            {/* Center controls */}
                             <View style={styles.centerControls}>
                                 <TouchableOpacity style={styles.seekButton} onPress={seekBackward}>
                                     <Text style={styles.seekIcon}>↺</Text>
@@ -398,7 +584,7 @@ const VideoPlayerScreen = ({ navigation, route }) => {
                     )}
                 </TouchableOpacity>
 
-                {/* Progress Bar */}
+                {/* Progress */}
                 {showControls && (
                     <View style={styles.videoProgressContainer}>
                         <View style={styles.timeRow}>
@@ -422,7 +608,7 @@ const VideoPlayerScreen = ({ navigation, route }) => {
                 )}
             </View>
 
-            {/* Aşağıdaki içerikleri fullscreen’de göstermeyelim */}
+            {/* Fullscreen değilken diğer içerikler */}
             {!isFullScreen && (
                 <>
                     {/* Lesson Navigation */}
@@ -467,55 +653,101 @@ const VideoPlayerScreen = ({ navigation, route }) => {
                                     </View>
                                 )}
                             </View>
-                            {currentLesson?.description && <Text style={styles.lessonDescription}>{currentLesson.description}</Text>}
+                            {currentLesson?.description && (
+                                <Text style={styles.lessonDescription}>{currentLesson.description}</Text>
+                            )}
                         </View>
 
                         {lessons.length > 0 && (
                             <View style={styles.lessonListContainer}>
                                 <Text style={styles.sectionTitle}>Ders Listesi</Text>
-                                {lessons.map((lessonItem, index) => (
-                                    <TouchableOpacity
-                                        key={lessonItem.id || index}
-                                        style={[
-                                            styles.lessonListItem,
-                                            index === currentLessonIndex && styles.lessonListItemActive,
-                                            lessonItem.isCompleted && styles.lessonListItemCompleted,
-                                        ]}
-                                        onPress={() => selectLesson(lessonItem, index)}
-                                    >
-                                        <View style={styles.lessonListNumber}>
-                                            <Text
-                                                style={[
+                                {lessons.map((lessonItem, index) => {
+                                    const lessonProgress = lessonsProgress[lessonItem.id];
+                                    const isCompleted = lessonProgress?.isCompleted;
+                                    const watchedPercent = lessonProgress && lessonProgress.totalSeconds > 0
+                                        ? Math.round((lessonProgress.watchedSeconds / lessonProgress.totalSeconds) * 100)
+                                        : 0;
+
+                                    return (
+                                        <TouchableOpacity
+                                            key={lessonItem.id || index}
+                                            style={[
+                                                styles.lessonListItem,
+                                                index === currentLessonIndex && styles.lessonListItemActive,
+                                                isCompleted && styles.lessonListItemCompleted,
+                                            ]}
+                                            onPress={() => selectLesson(lessonItem, index)}
+                                        >
+                                            <View style={[
+                                                styles.lessonListNumber,
+                                                isCompleted && styles.lessonListNumberCompleted
+                                            ]}>
+                                                <Text style={[
                                                     styles.lessonListNumberText,
                                                     index === currentLessonIndex && styles.lessonListNumberTextActive,
-                                                ]}
-                                            >
-                                                {lessonItem.isCompleted ? '✓' : index + 1}
-                                            </Text>
-                                        </View>
-                                        <View style={styles.lessonListContent}>
-                                            <Text
-                                                style={[
-                                                    styles.lessonListTitle,
-                                                    index === currentLessonIndex && styles.lessonListTitleActive,
-                                                ]}
-                                                numberOfLines={2}
-                                            >
-                                                {lessonItem.title}
-                                            </Text>
-                                        </View>
-                                        {index === currentLessonIndex && (
-                                            <View style={styles.nowPlayingBadge}>
-                                                <Text style={styles.nowPlayingText}>▶</Text>
+                                                    isCompleted && styles.lessonListNumberTextCompleted,
+                                                ]}>
+                                                    {isCompleted ? '✓' : index + 1}
+                                                </Text>
                                             </View>
-                                        )}
-                                    </TouchableOpacity>
-                                ))}
+                                            <View style={styles.lessonListContent}>
+                                                <Text
+                                                    style={[
+                                                        styles.lessonListTitle,
+                                                        index === currentLessonIndex && styles.lessonListTitleActive,
+                                                    ]}
+                                                    numberOfLines={2}
+                                                >
+                                                    {lessonItem.title}
+                                                </Text>
+                                                {/* Ders progress bar */}
+                                                {watchedPercent > 0 && (
+                                                    <View style={styles.lessonItemProgressContainer}>
+                                                        <View style={styles.lessonItemProgressBar}>
+                                                            <View style={[styles.lessonItemProgressFill, { width: `${watchedPercent}%` }]} />
+                                                        </View>
+                                                        <Text style={styles.lessonItemProgressText}>{watchedPercent}%</Text>
+                                                    </View>
+                                                )}
+                                            </View>
+                                            {index === currentLessonIndex && (
+                                                <View style={styles.nowPlayingBadge}>
+                                                    <Text style={styles.nowPlayingText}>▶</Text>
+                                                </View>
+                                            )}
+                                        </TouchableOpacity>
+                                    );
+                                })}
                             </View>
                         )}
                     </ScrollView>
                 </>
             )}
+
+            {/* Settings Modal */}
+            <Modal
+                transparent
+                visible={settingsOpen}
+                animationType="fade"
+                onRequestClose={() => setSettingsOpen(false)}
+            >
+                <TouchableOpacity
+                    activeOpacity={1}
+                    style={styles.modalBackdrop}
+                    onPress={() => setSettingsOpen(false)}
+                >
+                    <View style={styles.modalSheet} onStartShouldSetResponder={() => true}>
+                        <Text style={styles.modalTitle}>Oynatma Hızı</Text>
+                        {[0.5, 0.75, 1, 1.25, 1.5, 2].map((r) => (
+                            <TouchableOpacity key={r} style={styles.modalRow} onPress={() => setRate(r)}>
+                                <Text style={styles.modalRowText}>
+                                    {r}x {r === playbackRate ? '✓' : ''}
+                                </Text>
+                            </TouchableOpacity>
+                        ))}
+                    </View>
+                </TouchableOpacity>
+            </Modal>
         </SafeAreaView>
     );
 };
@@ -537,9 +769,15 @@ const styles = StyleSheet.create({
     headerSubtitle: { fontSize: SIZES.body1, color: COLORS.white, fontWeight: '600' },
 
     videoContainer: {
-        width: SCREEN_WIDTH,
-        height: SCREEN_WIDTH * 9 / 16,
         backgroundColor: '#000',
+    },
+    fullVideoContainer: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        backgroundColor: '#000',
+        zIndex: 9999,
+        elevation: 9999,
     },
     video: { width: '100%', height: '100%' },
 
@@ -548,14 +786,14 @@ const styles = StyleSheet.create({
 
     topControls: { position: 'absolute', top: 12, right: 12, flexDirection: 'row', gap: 12 },
     topButton: {
-        width: 40,
-        height: 40,
-        borderRadius: 8,
+        width: 44,
+        height: 44,
+        borderRadius: 10,
         backgroundColor: 'rgba(255,255,255,0.2)',
         justifyContent: 'center',
         alignItems: 'center',
     },
-    topButtonIcon: { fontSize: 20, color: '#fff' },
+    topButtonIcon: { fontSize: 18, color: '#fff' },
 
     centerControls: { flexDirection: 'row', alignItems: 'center', gap: 40 },
     seekButton: { width: 48, height: 48, justifyContent: 'center', alignItems: 'center' },
@@ -583,29 +821,11 @@ const styles = StyleSheet.create({
     timeRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
     timeText: { fontSize: 12, color: COLORS.white },
     progressBarTouchable: { paddingVertical: 4 },
-    progressBar: {
-        height: 4,
-        backgroundColor: 'rgba(255,255,255,0.3)',
-        borderRadius: 2,
-        position: 'relative',
-    },
+    progressBar: { height: 4, backgroundColor: 'rgba(255,255,255,0.3)', borderRadius: 2, position: 'relative' },
     progressFill: { height: '100%', backgroundColor: '#E50914', borderRadius: 2 },
-    progressThumb: {
-        position: 'absolute',
-        top: -4,
-        width: 12,
-        height: 12,
-        borderRadius: 6,
-        backgroundColor: '#E50914',
-        marginLeft: -6,
-    },
+    progressThumb: { position: 'absolute', top: -4, width: 12, height: 12, borderRadius: 6, backgroundColor: '#E50914', marginLeft: -6 },
 
-    videoErrorOverlay: {
-        ...StyleSheet.absoluteFillObject,
-        backgroundColor: 'rgba(0,0,0,0.7)',
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
+    videoErrorOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center' },
     errorIcon: { fontSize: 48, marginBottom: 10 },
     errorText: { color: COLORS.white, fontSize: SIZES.body1, marginBottom: 16 },
 
@@ -668,12 +888,23 @@ const styles = StyleSheet.create({
     },
     lessonListNumberText: { fontSize: SIZES.body2, fontWeight: 'bold', color: COLORS.textLight },
     lessonListNumberTextActive: { color: COLORS.primary },
+    lessonListNumberCompleted: { backgroundColor: COLORS.success },
+    lessonListNumberTextCompleted: { color: COLORS.white },
     lessonListContent: { flex: 1 },
     lessonListTitle: { fontSize: SIZES.body1, color: COLORS.text, fontWeight: '500' },
     lessonListTitleActive: { color: COLORS.primary, fontWeight: '600' },
-
+    lessonItemProgressContainer: { flexDirection: 'row', alignItems: 'center', marginTop: 6 },
+    lessonItemProgressBar: { flex: 1, height: 4, backgroundColor: COLORS.border, borderRadius: 2, marginRight: 8 },
+    lessonItemProgressFill: { height: '100%', backgroundColor: COLORS.primary, borderRadius: 2 },
+    lessonItemProgressText: { fontSize: 11, color: COLORS.textLight, fontWeight: '600', minWidth: 32 },
     nowPlayingBadge: { backgroundColor: COLORS.primary, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4 },
     nowPlayingText: { color: COLORS.white, fontSize: 12 },
+
+    modalBackdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.35)' },
+    modalSheet: { backgroundColor: '#fff', padding: 16, borderTopLeftRadius: 16, borderTopRightRadius: 16 },
+    modalTitle: { fontSize: 16, fontWeight: '700', marginBottom: 8 },
+    modalRow: { paddingVertical: 12 },
+    modalRowText: { fontSize: 16 },
 });
 
 export default VideoPlayerScreen;

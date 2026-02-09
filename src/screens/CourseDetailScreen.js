@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { COLORS, SIZES, SHADOWS } from '../constants/theme';
+import { Ionicons } from '@expo/vector-icons';
 import Button from '../components/Button';
 import courseService from '../services/courseService';
 import { showInfoToast } from '../utils/toast';
@@ -413,16 +414,28 @@ const CourseDetailScreen = ({ route, navigation }) => {
         </View>
       </ScrollView>
 
-      {/* Bottom Action Button */}
+      {/* Bottom Action Buttons */}
       <View style={styles.bottomBar}>
         {isEnrolled ? (
-          <Button
-            title="Continue Learning"
-            onPress={handleContinueLearning}
-            variant="primary"
-            size="large"
-            style={styles.actionButton}
-          />
+          <View style={styles.bottomButtonsRow}>
+            <Button
+              title="Devam Et"
+              onPress={handleContinueLearning}
+              variant="primary"
+              size="large"
+              style={styles.continueButton}
+            />
+            <TouchableOpacity
+              style={styles.quizButton}
+              onPress={() => navigation.navigate('QuizList', {
+                courseId: course.id,
+                courseName: course.title,
+              })}
+            >
+              <Ionicons name="document-text" size={24} color={COLORS.primary} />
+              <Text style={styles.quizButtonText}>Quiz</Text>
+            </TouchableOpacity>
+          </View>
         ) : (
           <Button
             title={course.price > 0 ? `${course.price} ₺ - Purchase` : 'Free Kaydol'}
@@ -772,6 +785,30 @@ const styles = StyleSheet.create({
   },
   actionButton: {
     width: '100%',
+  },
+  bottomButtonsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SIZES.paddingSmall,
+  },
+  continueButton: {
+    flex: 1,
+  },
+  quizButton: {
+    width: 70,
+    height: 48,
+    borderRadius: SIZES.radiusSmall,
+    backgroundColor: COLORS.primary + '15',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.primary,
+  },
+  quizButtonText: {
+    fontSize: SIZES.body3,
+    color: COLORS.primary,
+    fontWeight: '600',
+    marginTop: 2,
   },
 });
 

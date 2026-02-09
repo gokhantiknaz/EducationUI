@@ -9,6 +9,9 @@ import MyListScreen from '../screens/MyListScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import CourseDetailScreen from '../screens/CourseDetailScreen';
 import VideoPlayerScreen from '../screens/VideoPlayerScreen';
+import QuizListScreen from '../screens/QuizListScreen';
+import QuizScreen from '../screens/QuizScreen';
+import QuizResultScreen from '../screens/QuizResultScreen';
 import {COLORS} from '../constants/theme';
 
 const Stack = createStackNavigator();
@@ -98,6 +101,21 @@ const MainNavigator = () => {
                 component={VideoPlayerScreen}
                 options={{
                     gestureEnabled: false, // Swipe back'i devre dışı bırak (video izlerken)
+                }}
+            />
+            <Stack.Screen name="QuizList" component={QuizListScreen}/>
+            <Stack.Screen
+                name="Quiz"
+                component={QuizScreen}
+                options={{
+                    gestureEnabled: false, // Swipe back'i devre dışı bırak (quiz sırasında)
+                }}
+            />
+            <Stack.Screen
+                name="QuizResult"
+                component={QuizResultScreen}
+                options={{
+                    gestureEnabled: false,
                 }}
             />
         </Stack.Navigator>

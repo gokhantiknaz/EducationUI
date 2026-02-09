@@ -1,0 +1,55 @@
+{
+  "cli": {
+    "version": ">= 5.0.0"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_APP_ID": "com.education.default"
+      }
+    },
+    "preview": {
+      "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_APP_ID": "com.education.default"
+      }
+    },
+    "production": {
+      "env": {
+        "EXPO_PUBLIC_APP_ID": "com.education.default"
+      }
+    },
+    "medical-training": {
+      "extends": "production",
+      "env": {
+        "EXPO_PUBLIC_APP_ID": "com.company.medical"
+      },
+      "android": {
+        "buildType": "apk"
+      }
+    },
+    "safety-training": {
+      "extends": "production",
+      "env": {
+        "EXPO_PUBLIC_APP_ID": "com.company.safety"
+      },
+      "android": {
+        "buildType": "apk"
+      }
+    },
+    "corporate-training": {
+      "extends": "production",
+      "env": {
+        "EXPO_PUBLIC_APP_ID": "com.company.corporate"
+      },
+      "android": {
+        "buildType": "apk"
+      }
+    }
+  },
+  "submit": {
+    "production": {}
+  }
+}

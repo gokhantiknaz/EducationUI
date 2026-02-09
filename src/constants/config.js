@@ -1,3 +1,6 @@
+// Multi-tenant App ID - Her build için farklı APP_ID kullanılır
+export const APP_ID = process.env.EXPO_PUBLIC_APP_ID || 'com.education.default';
+
 // API Base URL - Backend sunucu adresinizi buraya yazın
 // Yerel ağ IP adresi kullanarak Android emülatörden erişim
 // export const API_BASE_URL = 'https://172.16.6.113:52564/api'; // Yerel IP adresi
@@ -6,74 +9,77 @@
 export const API_BASE_URL='http://192.168.1.98:52563/api';
 // export const API_BASE_URL = 'https://your-production-api.com/api'; // Production için
 
-// API Endpoints - Backend'e uygun endpoint'ler
+// API Endpoints - Mobile App (UI) endpoints
 export const API_ENDPOINTS = {
+  // App Config (Multi-tenant)
+  APP_CONFIG: (appId) => `/ui/applications/config/${appId}`,
+
   // Auth
-  LOGIN: '/auth/login',
-  REGISTER: '/auth/register',
-  REFRESH_TOKEN: '/auth/refresh-token',
-  FORGOT_PASSWORD: '/auth/forgot-password',
-  RESET_PASSWORD: '/auth/reset-password',
-  VERIFY_EMAIL: '/auth/verify-email',
+  LOGIN: '/ui/auth/login',
+  REGISTER: '/ui/auth/register',
+  REFRESH_TOKEN: '/ui/auth/refresh-token',
+  FORGOT_PASSWORD: '/ui/auth/forgot-password',
+  RESET_PASSWORD: '/ui/auth/reset-password',
+  VERIFY_EMAIL: '/ui/auth/verify-email',
 
   // User
-  USER_PROFILE: '/users/me',
-  USER_FULL_PROFILE: '/users/me/profile',
-  UPDATE_PROFILE: '/users/me',
-  CHANGE_PASSWORD: '/users/me/password',
-  UPLOAD_AVATAR: '/users/me/avatar',
-  PROFESSIONS: '/users/professions',
-  INTEREST_TAGS: '/users/interests',
+  USER_PROFILE: '/ui/users/me',
+  USER_FULL_PROFILE: '/ui/users/me/profile',
+  UPDATE_PROFILE: '/ui/users/me',
+  CHANGE_PASSWORD: '/ui/users/me/password',
+  UPLOAD_AVATAR: '/ui/users/me/avatar',
+  PROFESSIONS: '/ui/users/professions',
+  INTEREST_TAGS: '/ui/users/interests',
 
   // Courses (Public)
-  COURSES: '/courses',
-  COURSE_DETAIL: (id) => `/courses/${id}`,
-  COURSE_BY_SLUG: (slug) => `/courses/slug/${slug}`,
-  COURSE_PREVIEW_VIDEO: (id) => `/courses/${id}/preview-video`,
+  COURSES: '/ui/courses',
+  COURSE_DETAIL: (id) => `/ui/courses/${id}`,
+  COURSE_BY_SLUG: (slug) => `/ui/courses/slug/${slug}`,
+  COURSE_PREVIEW_VIDEO: (id) => `/ui/courses/${id}/preview-video`,
 
   // Enrollments (User's Courses - Requires Auth)
-  MY_COURSES: '/enrollments/my-courses',
-  CONTINUE_LEARNING: '/enrollments/continue-learning',
-  COMPLETED_COURSES: '/enrollments/completed',
-  ENROLLMENT_STATUS: (courseId) => `/enrollments/course/${courseId}/status`,
+  MY_COURSES: '/ui/enrollments/my-courses',
+  CONTINUE_LEARNING: '/ui/enrollments/continue-learning',
+  COMPLETED_COURSES: '/ui/enrollments/completed',
+  ENROLLMENT_STATUS: (courseId) => `/ui/enrollments/course/${courseId}/status`,
 
   // Categories
-  CATEGORIES: '/categories',
-  CATEGORY_DETAIL: (id) => `/categories/${id}`,
+  CATEGORIES: '/ui/categories',
+  CATEGORY_DETAIL: (id) => `/ui/categories/${id}`,
 
   // Lessons (Requires Auth)
-  LESSON_STREAM_URL: (lessonId) => `/lessons/${lessonId}/stream-url`,
-  LESSON_PROGRESS: (lessonId) => `/lessons/${lessonId}/progress`,
-  SAVE_LESSON_PROGRESS: (lessonId) => `/lessons/${lessonId}/progress`,
-  COURSE_LESSONS_PROGRESS: (courseId) => `/lessons/course/${courseId}/progress`,
+  LESSON_STREAM_URL: (lessonId) => `/ui/lessons/${lessonId}/stream-url`,
+  LESSON_PROGRESS: (lessonId) => `/ui/lessons/${lessonId}/progress`,
+  SAVE_LESSON_PROGRESS: (lessonId) => `/ui/lessons/${lessonId}/progress`,
+  COURSE_LESSONS_PROGRESS: (courseId) => `/ui/lessons/course/${courseId}/progress`,
 
   // Orders (Requires Auth)
-  CREATE_ORDER: '/orders/create',
-  COMPLETE_ORDER: (orderId) => `/orders/${orderId}/complete`,
-  MY_ORDERS: '/orders/my-orders',
-  ORDER_DETAIL: (orderId) => `/orders/${orderId}`,
+  CREATE_ORDER: '/ui/orders/create',
+  COMPLETE_ORDER: (orderId) => `/ui/orders/${orderId}/complete`,
+  MY_ORDERS: '/ui/orders/my-orders',
+  ORDER_DETAIL: (orderId) => `/ui/orders/${orderId}`,
 
   // Quizzes (Requires Auth)
-  COURSE_QUIZZES: (courseId) => `/quizzes/course/${courseId}`,
-  START_QUIZ: (quizId) => `/quizzes/${quizId}/start`,
-  SUBMIT_QUIZ: (attemptId) => `/quizzes/attempts/${attemptId}/submit`,
-  MY_QUIZ_ATTEMPTS: '/quizzes/attempts/my-attempts',
+  COURSE_QUIZZES: (courseId) => `/ui/quizzes/course/${courseId}`,
+  START_QUIZ: (quizId) => `/ui/quizzes/${quizId}/start`,
+  SUBMIT_QUIZ: (attemptId) => `/ui/quizzes/attempts/${attemptId}/submit`,
+  MY_QUIZ_ATTEMPTS: '/ui/quizzes/attempts/my-attempts',
 
   // Certificates (Requires Auth for generate/list, Public for verify)
-  MY_CERTIFICATES: '/certificates/my-certificates',
-  VERIFY_CERTIFICATE: (certificateNumber) => `/certificates/${certificateNumber}`,
-  GENERATE_CERTIFICATE: (courseId) => `/certificates/generate/${courseId}`,
+  MY_CERTIFICATES: '/ui/certificates/my-certificates',
+  VERIFY_CERTIFICATE: (certificateNumber) => `/ui/certificates/${certificateNumber}`,
+  GENERATE_CERTIFICATE: (courseId) => `/ui/certificates/generate/${courseId}`,
 
   // Reviews
-  CREATE_REVIEW: '/reviews',
-  COURSE_REVIEWS: (courseId) => `/reviews/course/${courseId}`,
-  UPDATE_REVIEW: (reviewId) => `/reviews/${reviewId}`,
-  DELETE_REVIEW: (reviewId) => `/reviews/${reviewId}`,
+  CREATE_REVIEW: '/ui/reviews',
+  COURSE_REVIEWS: (courseId) => `/ui/reviews/course/${courseId}`,
+  UPDATE_REVIEW: (reviewId) => `/ui/reviews/${reviewId}`,
+  DELETE_REVIEW: (reviewId) => `/ui/reviews/${reviewId}`,
 
   // Notifications (Requires Auth)
-  NOTIFICATIONS: '/notifications',
-  MARK_NOTIFICATION_READ: (notificationId) => `/notifications/${notificationId}/read`,
-  MARK_ALL_NOTIFICATIONS_READ: '/notifications/read-all',
+  NOTIFICATIONS: '/ui/notifications',
+  MARK_NOTIFICATION_READ: (notificationId) => `/ui/notifications/${notificationId}/read`,
+  MARK_ALL_NOTIFICATIONS_READ: '/ui/notifications/read-all',
 };
 
 // Request timeout

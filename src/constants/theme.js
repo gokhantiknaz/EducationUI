@@ -1,7 +1,33 @@
-export const COLORS = {
+// Default colors - can be overridden by app config
+let currentColors = {
   primary: '#6C5CE7',
   secondary: '#A29BFE',
   accent: '#FD79A8',
+};
+
+// Function to update theme colors from app config
+export const updateThemeColors = (themeConfig) => {
+  if (themeConfig) {
+    if (themeConfig.primaryColor) currentColors.primary = themeConfig.primaryColor;
+    if (themeConfig.secondaryColor) currentColors.secondary = themeConfig.secondaryColor;
+    if (themeConfig.accentColor) currentColors.accent = themeConfig.accentColor;
+  }
+};
+
+// Function to create theme from config
+export const createThemeFromConfig = (themeConfig) => {
+  return {
+    primary: themeConfig?.primaryColor || '#6C5CE7',
+    secondary: themeConfig?.secondaryColor || '#A29BFE',
+    accent: themeConfig?.accentColor || '#FD79A8',
+  };
+};
+
+// Export colors as a getter to get current theme
+export const COLORS = {
+  get primary() { return currentColors.primary; },
+  get secondary() { return currentColors.secondary; },
+  get accent() { return currentColors.accent; },
   
   // Background
   background: '#FFFFFF',

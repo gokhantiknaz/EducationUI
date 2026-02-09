@@ -5,6 +5,18 @@ import { APP_ID, API_ENDPOINTS, STORAGE_KEYS } from '../constants/config';
 
 const APP_CONFIG_KEY = '@app_config';
 
+// Default fallback config when no app is configured in database
+const DEFAULT_CONFIG = {
+  appId: APP_ID,
+  name: 'Education Platform',
+  description: 'Online Learning Platform',
+  isActive: true,
+  allowRegistration: true,
+  requireEnrollment: false,
+  courses: [], // Empty = show all courses
+  theme: null,
+};
+
 const useAppConfigStore = create((set, get) => ({
   // State
   config: null,
@@ -87,23 +99,39 @@ const useAppConfigStore = create((set, get) => ({
       if (cachedConfig) {
         const parsed = JSON.parse(cachedConfig);
         if (parsed.appId === APP_ID) {
+          console.log('AppConfigStore - Using cached config after error');
           set({
             config: parsed,
             isLoading: false,
-            error: 'Using cached config',
+            error: null,
             isInitialized: true,
           });
           return parsed;
         }
       }
 
+      // If 404 (app not found), use default config
+      if (error.response?.status === 404) {
+        console.log('AppConfigStore - App not found, using default config');
+        set({
+          config: DEFAULT_CONFIG,
+          isLoading: false,
+          error: null,
+          isInitialized: true,
+        });
+        return DEFAULT_CONFIG;
+      }
+
+      // For other errors, still use default config but set error
+      console.log('AppConfigStore - Error occurred, using default config');
       set({
+        config: DEFAULT_CONFIG,
         error: error.response?.data?.message || error.message || 'Failed to load app configuration',
         isLoading: false,
         isInitialized: true,
       });
 
-      throw error;
+      return DEFAULT_CONFIG;
     }
   },
 

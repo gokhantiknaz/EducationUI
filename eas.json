@@ -7,18 +7,18 @@
       "developmentClient": true,
       "distribution": "internal",
       "env": {
-        "EXPO_PUBLIC_APP_ID": "com.education.default"
+        "EXPO_PUBLIC_APP_ID": "com.oakacademy.education"
       }
     },
     "preview": {
       "distribution": "internal",
       "env": {
-        "EXPO_PUBLIC_APP_ID": "com.education.default"
+        "EXPO_PUBLIC_APP_ID": "com.oakacademy.education"
       }
     },
     "production": {
       "env": {
-        "EXPO_PUBLIC_APP_ID": "com.education.default"
+        "EXPO_PUBLIC_APP_ID": "com.oakacademy.education"
       }
     },
     "medical-training": {
@@ -33,7 +33,7 @@
     "safety-training": {
       "extends": "production",
       "env": {
-        "EXPO_PUBLIC_APP_ID": "com.company.safety"
+        "EXPO_PUBLIC_APP_ID": "com.oakacademy.education"
       },
       "android": {
         "buildType": "apk"
@@ -42,7 +42,7 @@
     "corporate-training": {
       "extends": "production",
       "env": {
-        "EXPO_PUBLIC_APP_ID": "com.company.corporate"
+        "EXPO_PUBLIC_APP_ID": "com.oakacademy.education"
       },
       "android": {
         "buildType": "apk"

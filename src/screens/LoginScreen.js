@@ -12,6 +12,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { COLORS, SIZES, SHADOWS } from '../constants/theme';
 import Button from '../components/Button';
 import Input from '../components/Input';
+import SocialLoginButtons from '../components/SocialLoginButtons';
 import useAuthStore from '../store/authStore';
 import { showSuccessToast, showErrorToast } from '../utils/toast';
 
@@ -154,6 +155,8 @@ const LoginScreen = ({ navigation }) => {
               <Text style={styles.dividerText}>veya</Text>
               <View style={styles.dividerLine} />
             </View>
+
+            <SocialLoginButtons />
 
             <View style={styles.registerContainer}>
               <Text style={styles.registerText}>Don't have an account? </Text>

@@ -22,6 +22,34 @@ class AuthService {
     }
   }
 
+  // Sosyal login (Google, LinkedIn)
+  async socialLogin(provider, userData) {
+    try {
+      const payload = {
+        provider,
+        idToken: userData.idToken || '',
+        accessToken: userData.accessToken || '',
+        email: userData.email,
+        firstName: userData.firstName || userData.givenName,
+        lastName: userData.lastName || userData.familyName,
+        profileImageUrl: userData.picture || userData.profileImageUrl,
+        externalUserId: userData.id || userData.sub,
+      };
+
+      const response = await apiClient.post(API_ENDPOINTS.SOCIAL_LOGIN, payload);
+
+      if (response.data.success && response.data.data) {
+        const { accessToken, refreshToken, user } = response.data.data;
+        await this.saveAuthData({ token: accessToken, refreshToken, user });
+        return response.data.data;
+      }
+
+      return response.data;
+    } catch (error) {
+      throw this.handleError(error);
+    }
+  }
+
   // Kullanıcı girişi
   async login(email, password) {
     try {

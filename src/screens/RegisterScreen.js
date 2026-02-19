@@ -12,6 +12,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { COLORS, SIZES } from '../constants/theme';
 import Button from '../components/Button';
 import Input from '../components/Input';
+import SocialLoginButtons from '../components/SocialLoginButtons';
 import useAuthStore from '../store/authStore';
 import { showSuccessToast, showErrorToast } from '../utils/toast';
 
@@ -194,6 +195,14 @@ const RegisterScreen = ({ navigation }) => {
               style={styles.registerButton}
             />
 
+            <View style={styles.divider}>
+              <View style={styles.dividerLine} />
+              <Text style={styles.dividerText}>veya</Text>
+              <View style={styles.dividerLine} />
+            </View>
+
+            <SocialLoginButtons />
+
             <View style={styles.loginContainer}>
               <Text style={styles.loginText}>Already have an account? </Text>
               <TouchableOpacity onPress={() => navigation.navigate('Login')}>
@@ -247,6 +256,21 @@ const styles = StyleSheet.create({
   registerButton: {
     marginTop: SIZES.padding,
     marginBottom: SIZES.paddingLarge,
+  },
+  divider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: SIZES.paddingLarge,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: COLORS.border,
+  },
+  dividerText: {
+    marginHorizontal: SIZES.padding,
+    fontSize: SIZES.body2,
+    color: COLORS.textLight,
   },
   loginContainer: {
     flexDirection: 'row',

@@ -59,6 +59,28 @@ const useAuthStore = create((set, get) => ({
     }
   },
 
+  // Social Login (Google, LinkedIn)
+  socialLogin: async (provider, userData) => {
+    set({ isLoading: true, error: null });
+    try {
+      const response = await authService.socialLogin(provider, userData);
+      set({
+        user: response.user,
+        isAuthenticated: true,
+        isLoading: false,
+        error: null,
+      });
+      return response;
+    } catch (error) {
+      set({
+        error: error.message,
+        isLoading: false,
+        isAuthenticated: false,
+      });
+      throw error;
+    }
+  },
+
   // Logout
   logout: async () => {
     console.log('authStore - logout başladı');

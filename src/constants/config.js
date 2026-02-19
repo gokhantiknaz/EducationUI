@@ -1,6 +1,15 @@
 // Multi-tenant App ID - Her build için farklı APP_ID kullanılır
 export const APP_ID = process.env.EXPO_PUBLIC_APP_ID || 'com.education.default';
 
+// OAuth Client IDs - Google Cloud Console ve LinkedIn Developer Portal'dan alınacak
+export const OAUTH_CONFIG = {
+  GOOGLE_CLIENT_ID: process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID || '',
+  GOOGLE_IOS_CLIENT_ID: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID || '',
+  GOOGLE_ANDROID_CLIENT_ID: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID || '',
+  LINKEDIN_CLIENT_ID: process.env.EXPO_PUBLIC_LINKEDIN_CLIENT_ID || '',
+  LINKEDIN_CLIENT_SECRET: process.env.EXPO_PUBLIC_LINKEDIN_CLIENT_SECRET || '',
+};
+
 // API Base URL - Backend sunucu adresinizi buraya yazın
 // Yerel ağ IP adresi kullanarak Android emülatörden erişim
 // export const API_BASE_URL = 'https://172.16.6.113:52564/api'; // Yerel IP adresi
@@ -21,6 +30,7 @@ export const API_ENDPOINTS = {
   FORGOT_PASSWORD: '/ui/auth/forgot-password',
   RESET_PASSWORD: '/ui/auth/reset-password',
   VERIFY_EMAIL: '/ui/auth/verify-email',
+  SOCIAL_LOGIN: '/ui/auth/social-login',
 
   // User
   USER_PROFILE: '/ui/users/me',

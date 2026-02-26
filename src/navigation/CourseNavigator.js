@@ -6,6 +6,7 @@ import CourseDetailScreen from '../screens/CourseDetailScreen';
 import VideoPlayerScreen from '../screens/VideoPlayerScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import CourseDashboardScreen from '../screens/CourseDashboardScreen';
+import PurchaseScreen from '../screens/PurchaseScreen';
 import { COLORS } from '../constants/theme';
 
 const Stack = createStackNavigator();
@@ -85,6 +86,10 @@ const CourseNavigator = ({ initialCourseId }) => {
         options={{
           gestureEnabled: false,
         }}
+      />
+      <Stack.Screen
+        name="Purchase"
+        component={PurchaseScreen}
       />
     </Stack.Navigator>
   );

@@ -82,9 +82,31 @@ const CourseDetailScreen = ({ route, navigation }) => {
   };
 
   const handleEnroll = async () => {
-    // TODO: Satın alma işlemi
-    console.log('Kursu satın al:', courseId);
-    showInfoToast('Satın alma özelliği yakında eklenecek.', 'Bilgi');
+    if (course.price > 0) {
+      // Ücretli kurs - satın alma ekranına yönlendir
+      navigation.navigate('Purchase', { course });
+    } else {
+      // Ücretsiz kurs - direkt kayıt ol
+      try {
+        const orderResult = await courseService.createOrder([course.id], 'Free');
+        if (orderResult) {
+          await courseService.completeOrder(orderResult.id, {
+            transactionId: `FREE_${Date.now()}`,
+            paymentMethod: 'Free',
+          });
+          showInfoToast('Kursa başarıyla kaydoldunuz!', 'Başarılı');
+          loadCourseDetail(); // Sayfayı yenile
+        }
+      } catch (error) {
+        console.error('Enrollment error:', error);
+        showInfoToast('Kayıt işlemi başarısız oldu', 'Hata');
+      }
+    }
+  };
+
+  const handleLockedLessonPress = () => {
+    // Kilitli derse tıklandığında satın alma ekranına yönlendir
+    navigation.navigate('Purchase', { course });
   };
 
   // Tüm dersleri düz bir liste olarak al
@@ -299,8 +321,13 @@ const CourseDetailScreen = ({ route, navigation }) => {
                         <TouchableOpacity
                           key={lesson.id || lessonIndex}
                           style={styles.lessonItem}
-                          onPress={() => handleLessonPress(lessonWithSection, allLessons)}
-                          disabled={!isEnrolled && !lesson.isFree}
+                          onPress={() => {
+                            if (isEnrolled || lesson.isFree) {
+                              handleLessonPress(lessonWithSection, allLessons);
+                            } else {
+                              handleLockedLessonPress();
+                            }
+                          }}
                         >
                           <View style={[
                             styles.lessonNumber,

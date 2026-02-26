@@ -1,5 +1,5 @@
 // Multi-tenant App ID - Her build için farklı APP_ID kullanılır
-export const APP_ID = process.env.EXPO_PUBLIC_APP_ID || 'com.education.default';
+export const APP_ID = process.env.EXPO_PUBLIC_APP_ID || 'com.oakacademy.ai';
 
 // OAuth Client IDs - Google Cloud Console ve LinkedIn Developer Portal'dan alınacak
 export const OAUTH_CONFIG = {
@@ -15,7 +15,7 @@ export const OAUTH_CONFIG = {
 // export const API_BASE_URL = 'https://172.16.6.113:52564/api'; // Yerel IP adresi
 // export const API_BASE_URL = 'http://10.0.2.2:52564/api';// Android emülatör için (alternatif)
 //export const API_BASE_URL = 'http://localhost:52564/api'; // iOS Simulator için
-export const API_BASE_URL='http://192.168.1.98:52563/api';
+export const API_BASE_URL='http://192.168.56.1:52563/api';
 // export const API_BASE_URL = 'https://your-production-api.com/api'; // Production için
 
 // API Endpoints - Mobile App (UI) endpoints
@@ -90,6 +90,10 @@ export const API_ENDPOINTS = {
   NOTIFICATIONS: '/ui/notifications',
   MARK_NOTIFICATION_READ: (notificationId) => `/ui/notifications/${notificationId}/read`,
   MARK_ALL_NOTIFICATIONS_READ: '/ui/notifications/read-all',
+
+  // Promo Codes (Requires Auth)
+  VALIDATE_PROMO_CODE: '/ui/promo-codes/validate',
+  APPLY_PROMO_CODE: '/ui/promo-codes/apply',
 };
 
 // Request timeout

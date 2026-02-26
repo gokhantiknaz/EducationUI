@@ -661,63 +661,107 @@ const VideoPlayerScreen = ({ navigation, route }) => {
                         {lessons.length > 0 && (
                             <View style={styles.lessonListContainer}>
                                 <Text style={styles.sectionTitle}>Ders Listesi</Text>
-                                {lessons.map((lessonItem, index) => {
-                                    const lessonProgress = lessonsProgress[lessonItem.id];
-                                    const isCompleted = lessonProgress?.isCompleted;
-                                    const watchedPercent = lessonProgress && lessonProgress.totalSeconds > 0
-                                        ? Math.round((lessonProgress.watchedSeconds / lessonProgress.totalSeconds) * 100)
-                                        : 0;
+                                {(() => {
+                                    // Dersleri section'lara göre grupla
+                                    const sections = [];
+                                    let currentSection = null;
 
-                                    return (
-                                        <TouchableOpacity
-                                            key={lessonItem.id || index}
-                                            style={[
-                                                styles.lessonListItem,
-                                                index === currentLessonIndex && styles.lessonListItemActive,
-                                                isCompleted && styles.lessonListItemCompleted,
-                                            ]}
-                                            onPress={() => selectLesson(lessonItem, index)}
-                                        >
-                                            <View style={[
-                                                styles.lessonListNumber,
-                                                isCompleted && styles.lessonListNumberCompleted
-                                            ]}>
-                                                <Text style={[
-                                                    styles.lessonListNumberText,
-                                                    index === currentLessonIndex && styles.lessonListNumberTextActive,
-                                                    isCompleted && styles.lessonListNumberTextCompleted,
-                                                ]}>
-                                                    {isCompleted ? '✓' : index + 1}
+                                    lessons.forEach((lessonItem, index) => {
+                                        if (!currentSection || currentSection.title !== lessonItem.sectionTitle) {
+                                            currentSection = {
+                                                title: lessonItem.sectionTitle || 'Bölüm',
+                                                sectionIndex: lessonItem.sectionIndex,
+                                                lessons: [],
+                                                totalDuration: 0,
+                                            };
+                                            sections.push(currentSection);
+                                        }
+                                        currentSection.lessons.push({ ...lessonItem, globalIndex: index });
+                                        currentSection.totalDuration += lessonItem.durationSeconds || 0;
+                                    });
+
+                                    // Süreyi formatla
+                                    const formatSectionDuration = (seconds) => {
+                                        if (!seconds) return '';
+                                        const mins = Math.floor(seconds / 60);
+                                        const secs = seconds % 60;
+                                        if (mins >= 60) {
+                                            const hours = Math.floor(mins / 60);
+                                            const remainingMins = mins % 60;
+                                            return `${hours}s ${remainingMins}dk`;
+                                        }
+                                        return secs > 0 ? `${mins}dk ${secs}sn` : `${mins}dk`;
+                                    };
+
+                                    return sections.map((section, sectionIdx) => (
+                                        <View key={`section-${sectionIdx}`} style={styles.sectionGroup}>
+                                            <View style={styles.sectionHeader}>
+                                                <Text style={styles.sectionHeaderTitle}>{section.title}</Text>
+                                                <Text style={styles.sectionHeaderDuration}>
+                                                    {section.lessons.length} ders • {formatSectionDuration(section.totalDuration)}
                                                 </Text>
                                             </View>
-                                            <View style={styles.lessonListContent}>
-                                                <Text
-                                                    style={[
-                                                        styles.lessonListTitle,
-                                                        index === currentLessonIndex && styles.lessonListTitleActive,
-                                                    ]}
-                                                    numberOfLines={2}
-                                                >
-                                                    {lessonItem.title}
-                                                </Text>
-                                                {/* Ders progress bar */}
-                                                {watchedPercent > 0 && (
-                                                    <View style={styles.lessonItemProgressContainer}>
-                                                        <View style={styles.lessonItemProgressBar}>
-                                                            <View style={[styles.lessonItemProgressFill, { width: `${watchedPercent}%` }]} />
+                                            {section.lessons.map((lessonItem, lessonIdx) => {
+                                                const lessonProgress = lessonsProgress[lessonItem.id];
+                                                const isCompleted = lessonProgress?.isCompleted;
+                                                const watchedPercent = lessonProgress && lessonProgress.totalSeconds > 0
+                                                    ? Math.round((lessonProgress.watchedSeconds / lessonProgress.totalSeconds) * 100)
+                                                    : 0;
+                                                const globalIndex = lessonItem.globalIndex;
+
+                                                return (
+                                                    <TouchableOpacity
+                                                        key={lessonItem.id || `lesson-${globalIndex}`}
+                                                        style={[
+                                                            styles.lessonListItem,
+                                                            globalIndex === currentLessonIndex && styles.lessonListItemActive,
+                                                            isCompleted && styles.lessonListItemCompleted,
+                                                        ]}
+                                                        onPress={() => selectLesson(lessonItem, globalIndex)}
+                                                    >
+                                                        <View style={[
+                                                            styles.lessonListNumber,
+                                                            isCompleted && styles.lessonListNumberCompleted
+                                                        ]}>
+                                                            <Text style={[
+                                                                styles.lessonListNumberText,
+                                                                globalIndex === currentLessonIndex && styles.lessonListNumberTextActive,
+                                                                isCompleted && styles.lessonListNumberTextCompleted,
+                                                            ]}>
+                                                                {isCompleted ? '✓' : lessonIdx + 1}
+                                                            </Text>
                                                         </View>
-                                                        <Text style={styles.lessonItemProgressText}>{watchedPercent}%</Text>
-                                                    </View>
-                                                )}
-                                            </View>
-                                            {index === currentLessonIndex && (
-                                                <View style={styles.nowPlayingBadge}>
-                                                    <Text style={styles.nowPlayingText}>▶</Text>
-                                                </View>
-                                            )}
-                                        </TouchableOpacity>
-                                    );
-                                })}
+                                                        <View style={styles.lessonListContent}>
+                                                            <Text
+                                                                style={[
+                                                                    styles.lessonListTitle,
+                                                                    globalIndex === currentLessonIndex && styles.lessonListTitleActive,
+                                                                ]}
+                                                                numberOfLines={2}
+                                                            >
+                                                                {lessonItem.title}
+                                                            </Text>
+                                                            {/* Ders progress bar */}
+                                                            {watchedPercent > 0 && (
+                                                                <View style={styles.lessonItemProgressContainer}>
+                                                                    <View style={styles.lessonItemProgressBar}>
+                                                                        <View style={[styles.lessonItemProgressFill, { width: `${watchedPercent}%` }]} />
+                                                                    </View>
+                                                                    <Text style={styles.lessonItemProgressText}>{watchedPercent}%</Text>
+                                                                </View>
+                                                            )}
+                                                        </View>
+                                                        {globalIndex === currentLessonIndex && (
+                                                            <View style={styles.nowPlayingBadge}>
+                                                                <Text style={styles.nowPlayingText}>▶</Text>
+                                                            </View>
+                                                        )}
+                                                    </TouchableOpacity>
+                                                );
+                                            })}
+                                        </View>
+                                    ));
+                                })()}
                             </View>
                         )}
                     </ScrollView>
@@ -865,6 +909,28 @@ const styles = StyleSheet.create({
 
     lessonListContainer: { padding: SIZES.padding },
     sectionTitle: { fontSize: SIZES.h3, fontWeight: 'bold', color: COLORS.text, marginBottom: SIZES.padding },
+    sectionGroup: { marginBottom: SIZES.padding },
+    sectionHeader: {
+        backgroundColor: COLORS.primary + '15',
+        paddingVertical: 12,
+        paddingHorizontal: SIZES.padding,
+        borderRadius: SIZES.radius,
+        marginBottom: SIZES.paddingSmall,
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+    },
+    sectionHeaderTitle: {
+        fontSize: SIZES.body1,
+        fontWeight: '600',
+        color: COLORS.primary,
+        flex: 1,
+    },
+    sectionHeaderDuration: {
+        fontSize: SIZES.body3,
+        color: COLORS.textLight,
+        marginLeft: 8,
+    },
     lessonListItem: {
         flexDirection: 'row',
         alignItems: 'center',

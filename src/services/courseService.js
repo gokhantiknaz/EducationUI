@@ -1,11 +1,13 @@
 import apiClient from './api';
-import { API_ENDPOINTS } from '../constants/config';
+import { API_ENDPOINTS, APP_ID } from '../constants/config';
 
 class CourseService {
-  // Tüm kursları getir (Public)
+  // Tüm kursları getir (Public) - APP_ID ile filtrelenir
   async getCourses(params = {}) {
     try {
-      const response = await apiClient.get(API_ENDPOINTS.COURSES, { params });
+      const response = await apiClient.get(API_ENDPOINTS.COURSES, {
+        params: { ...params, appId: APP_ID }
+      });
       // Backend response: { success: true, data: { items: [...], pagination: {...} } }
       return response.data.success ? response.data.data : response.data;
     } catch (error) {
@@ -192,6 +194,35 @@ class CourseService {
   async getOrderDetail(orderId) {
     try {
       const response = await apiClient.get(API_ENDPOINTS.ORDER_DETAIL(orderId));
+      return response.data.success ? response.data.data : response.data;
+    } catch (error) {
+      throw this.handleError(error);
+    }
+  }
+
+  // Promosyon kodu doğrula (Requires Auth)
+  // Returns: { isValid, errorMessage, promoCodeId, code, discountType, discountValue, discountAmount, finalPrice }
+  async validatePromoCode(code, courseId, orderAmount) {
+    try {
+      const response = await apiClient.post(API_ENDPOINTS.VALIDATE_PROMO_CODE, {
+        code,
+        courseId,
+        orderAmount,
+      });
+      return response.data.success ? response.data.data : response.data;
+    } catch (error) {
+      throw this.handleError(error);
+    }
+  }
+
+  // Promosyon kodunu siparişe uygula (Requires Auth)
+  async applyPromoCode(promoCodeId, orderId, discountAmount) {
+    try {
+      const response = await apiClient.post(API_ENDPOINTS.APPLY_PROMO_CODE, {
+        promoCodeId,
+        orderId,
+        discountAmount,
+      });
       return response.data.success ? response.data.data : response.data;
     } catch (error) {
       throw this.handleError(error);

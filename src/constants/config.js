@@ -93,6 +93,9 @@ export const API_ENDPOINTS = {
   NOTIFICATIONS: '/ui/notifications',
   MARK_NOTIFICATION_READ: (notificationId) => `/ui/notifications/${notificationId}/read`,
   MARK_ALL_NOTIFICATIONS_READ: '/ui/notifications/read-all',
+  REGISTER_DEVICE_TOKEN: '/ui/notifications/device-token',
+  REMOVE_DEVICE_TOKEN: '/ui/notifications/device-token',
+  REMOVE_ALL_DEVICE_TOKENS: '/ui/notifications/device-tokens',
 
   // Promo Codes (Requires Auth)
   VALIDATE_PROMO_CODE: '/ui/promo-codes/validate',
@@ -109,4 +112,5 @@ export const STORAGE_KEYS = {
   USER_DATA: '@user_data',
   THEME: '@theme',
   LANGUAGE: '@language',
+  PUSH_TOKEN: '@push_token',
 };

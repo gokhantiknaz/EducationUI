@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import authService from '../services/authService';
+import notificationService from '../services/notificationService';
 
 const useAuthStore = create((set, get) => ({
   // State
@@ -86,6 +87,14 @@ const useAuthStore = create((set, get) => ({
     console.log('authStore - logout başladı');
     set({ isLoading: true });
     try {
+      // Remove push notification token from backend
+      try {
+        await notificationService.removeTokenFromBackend();
+        console.log('Push token removed from backend');
+      } catch (pushError) {
+        console.warn('Failed to remove push token:', pushError);
+      }
+
       await authService.logout();
       console.log('authService.logout başarılı');
       set({

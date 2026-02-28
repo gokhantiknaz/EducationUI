@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "532203596392",
+    "project_id": "oak-academy-bec40",
+    "storage_bucket": "oak-academy-bec40.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:532203596392:android:4cedce525538c509b269dd",
+        "android_client_info": {
+          "package_name": "com.oakacademy.education"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDHk-aoROY7Usm65JGmsU6WxMTCqYgMspk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

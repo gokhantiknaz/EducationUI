@@ -12,17 +12,38 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.oakacademy.education"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.gokhantiknaz.OakAcademy"
+      "package": "com.oakacademy.education",
+      "googleServicesFile": "./google-services.json"
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "plugins": [
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#ffffff",
+          "sounds": [],
+          "androidMode": "default",
+          "androidCollapsedTitle": "Oak Academy"
+        }
+      ],
+      "expo-web-browser"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "46a14275-5ed1-45ca-bf06-8be2ab25c483"
+      }
+    },
+    "owner": "gokhantiknaz"
   }
 }

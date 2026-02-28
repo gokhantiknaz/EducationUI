@@ -15,7 +15,8 @@ export const OAUTH_CONFIG = {
 // export const API_BASE_URL = 'https://172.16.6.113:52564/api'; // Yerel IP adresi
 // export const API_BASE_URL = 'http://10.0.2.2:52564/api';// Android emülatör için (alternatif)
 //export const API_BASE_URL = 'http://localhost:52564/api'; // iOS Simulator için
-export const API_BASE_URL='http://192.168.56.1:52563/api';
+//export const API_BASE_URL='http://192.168.56.1:52563/api';
+export const API_BASE_URL='http://192.168.1.98:52563/api';
 // export const API_BASE_URL = 'https://your-production-api.com/api'; // Production için
 
 // API Endpoints - Mobile App (UI) endpoints
@@ -59,6 +60,7 @@ export const API_ENDPOINTS = {
 
   // Lessons (Requires Auth)
   LESSON_STREAM_URL: (lessonId) => `/ui/lessons/${lessonId}/stream-url`,
+  LESSON_DOCUMENT_URL: (lessonId) => `/ui/lessons/${lessonId}/document-url`,
   LESSON_PROGRESS: (lessonId) => `/ui/lessons/${lessonId}/progress`,
   SAVE_LESSON_PROGRESS: (lessonId) => `/ui/lessons/${lessonId}/progress`,
   COURSE_LESSONS_PROGRESS: (courseId) => `/ui/lessons/course/${courseId}/progress`,
@@ -73,6 +75,7 @@ export const API_ENDPOINTS = {
   COURSE_QUIZZES: (courseId) => `/ui/quizzes/course/${courseId}`,
   START_QUIZ: (quizId) => `/ui/quizzes/${quizId}/start`,
   SUBMIT_QUIZ: (attemptId) => `/ui/quizzes/attempts/${attemptId}/submit`,
+  ABANDON_QUIZ: (attemptId) => `/ui/quizzes/attempts/${attemptId}/abandon`,
   MY_QUIZ_ATTEMPTS: '/ui/quizzes/attempts/my-attempts',
 
   // Certificates (Requires Auth for generate/list, Public for verify)

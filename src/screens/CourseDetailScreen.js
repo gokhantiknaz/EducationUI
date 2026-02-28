@@ -139,22 +139,35 @@ const CourseDetailScreen = ({ route, navigation }) => {
 
     // İlk tamamlanmamış dersi bul veya ilk dersten başla
     const nextLesson = allLessons.find(l => !l.isCompleted) || allLessons[0];
-
-    navigation.navigate('VideoPlayer', {
-      lesson: nextLesson,
-      courseId: course.id,
-      courseName: course.title,
-      lessons: allLessons,
-    });
+    navigateToLesson(nextLesson, allLessons);
   };
 
   const handleLessonPress = (lesson, allLessons) => {
-    navigation.navigate('VideoPlayer', {
-      lesson,
-      courseId: course.id,
-      courseName: course.title,
-      lessons: allLessons,
-    });
+    navigateToLesson(lesson, allLessons);
+  };
+
+  // İçerik tipine göre doğru ekrana yönlendir
+  const navigateToLesson = (lesson, allLessons) => {
+    const hasVideo = lesson.hasVideo || lesson.videoUrl;
+    const hasDocument = lesson.hasDocument || lesson.documentUrl;
+
+    // Sadece belge varsa DocumentViewer'a git
+    if (hasDocument && !hasVideo) {
+      navigation.navigate('DocumentViewer', {
+        lesson,
+        courseId: course.id,
+        courseName: course.title,
+        lessons: allLessons,
+      });
+    } else {
+      // Video varsa (tek başına veya belgeyle birlikte) VideoPlayer'a git
+      navigation.navigate('VideoPlayer', {
+        lesson,
+        courseId: course.id,
+        courseName: course.title,
+        lessons: allLessons,
+      });
+    }
   };
 
   // Saniyeyi dakika:saniye formatına çevir
@@ -345,6 +358,15 @@ const CourseDetailScreen = ({ route, navigation }) => {
                               {lesson.title}
                             </Text>
                             <View style={styles.lessonMeta}>
+                              {/* Content type icons */}
+                              <View style={styles.contentTypeIcons}>
+                                {(lesson.hasVideo || lesson.videoUrl) && (
+                                  <Ionicons name="videocam" size={14} color={COLORS.primary} style={{marginRight: 4}} />
+                                )}
+                                {(lesson.hasDocument || lesson.documentUrl) && (
+                                  <Ionicons name="document-text" size={14} color="#E74C3C" style={{marginRight: 4}} />
+                                )}
+                              </View>
                               {lesson.durationSeconds && (
                                 <Text style={styles.lessonDuration}>
                                   {formatDuration(lesson.durationSeconds)}
@@ -668,6 +690,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginTop: 2,
+  },
+  contentTypeIcons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: 6,
   },
   lessonDuration: {
     fontSize: SIZES.body3,

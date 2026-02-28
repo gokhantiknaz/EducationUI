@@ -16,13 +16,43 @@ import SocialLoginButtons from '../components/SocialLoginButtons';
 import useAuthStore from '../store/authStore';
 import { showSuccessToast, showErrorToast } from '../utils/toast';
 
+// Test kullanıcıları (sadece development modda görünür)
+const TEST_USERS = [
+  {
+    id: 'testuser1',
+    label: 'Test User 1',
+    description: 'Ücretsiz kullanıcı',
+    email: 'testuser1@test.com',
+    password: 'Test123!',
+    color: '#3B82F6',
+  },
+  {
+    id: 'testuser2',
+    label: 'Test User 2',
+    description: 'Premium kullanıcı (kurs satın almış)',
+    email: 'testuser2@test.com',
+    password: 'Test123!',
+    color: '#10B981',
+  },
+];
+
 const LoginScreen = ({ navigation }) => {
-  const [email, setEmail] = useState('test@example.com');
-  const [password, setPassword] = useState('Test123!');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState({});
 
   const { login, isLoading } = useAuthStore();
+
+  // Test kullanıcısı ile hızlı giriş
+  const handleTestUserLogin = async (testUser) => {
+    try {
+      await login(testUser.email, testUser.password);
+      showSuccessToast(`${testUser.label} olarak giriş yapıldı!`, 'Giriş Başarılı');
+    } catch (error) {
+      showErrorToast(error.message || 'Giriş başarısız', 'Hata');
+    }
+  };
 
   const validateForm = () => {
     const newErrors = {};
@@ -164,6 +194,38 @@ const LoginScreen = ({ navigation }) => {
                 <Text style={styles.registerLink}>Sign Up</Text>
               </TouchableOpacity>
             </View>
+
+            {/* Test Kullanıcıları - Sadece Development Modda */}
+            {__DEV__ && (
+              <View style={styles.testUsersContainer}>
+                <View style={styles.testUsersDivider}>
+                  <View style={styles.dividerLine} />
+                  <Text style={styles.testUsersTitle}>🧪 Test Kullanıcıları</Text>
+                  <View style={styles.dividerLine} />
+                </View>
+                {TEST_USERS.map((testUser) => (
+                  <TouchableOpacity
+                    key={testUser.id}
+                    style={[styles.testUserButton, { borderColor: testUser.color }]}
+                    onPress={() => handleTestUserLogin(testUser)}
+                    disabled={isLoading}
+                  >
+                    <View style={[styles.testUserIcon, { backgroundColor: testUser.color }]}>
+                      <Text style={styles.testUserIconText}>
+                        {testUser.id === 'testuser1' ? '👤' : '⭐'}
+                      </Text>
+                    </View>
+                    <View style={styles.testUserInfo}>
+                      <Text style={[styles.testUserLabel, { color: testUser.color }]}>
+                        {testUser.label}
+                      </Text>
+                      <Text style={styles.testUserDesc}>{testUser.description}</Text>
+                    </View>
+                    <Text style={styles.testUserArrow}>→</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -257,6 +319,65 @@ const styles = StyleSheet.create({
   },
   eyeIcon: {
     fontSize: 20,
+  },
+  // Test Users Styles
+  testUsersContainer: {
+    marginTop: SIZES.padding,
+    marginBottom: SIZES.paddingLarge,
+    padding: SIZES.padding,
+    backgroundColor: '#FEF3C7',
+    borderRadius: SIZES.radius,
+    borderWidth: 1,
+    borderColor: '#F59E0B',
+    borderStyle: 'dashed',
+  },
+  testUsersDivider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: SIZES.padding,
+  },
+  testUsersTitle: {
+    marginHorizontal: SIZES.paddingSmall,
+    fontSize: SIZES.body2,
+    fontWeight: '600',
+    color: '#92400E',
+  },
+  testUserButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: SIZES.padding,
+    backgroundColor: COLORS.white,
+    borderRadius: SIZES.radius,
+    borderWidth: 2,
+    marginBottom: SIZES.paddingSmall,
+    ...SHADOWS.small,
+  },
+  testUserIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: SIZES.padding,
+  },
+  testUserIconText: {
+    fontSize: 18,
+  },
+  testUserInfo: {
+    flex: 1,
+  },
+  testUserLabel: {
+    fontSize: SIZES.body1,
+    fontWeight: '700',
+  },
+  testUserDesc: {
+    fontSize: SIZES.body3,
+    color: COLORS.textLight,
+    marginTop: 2,
+  },
+  testUserArrow: {
+    fontSize: 20,
+    color: COLORS.textLight,
   },
 });
 

@@ -7,6 +7,10 @@ import VideoPlayerScreen from '../screens/VideoPlayerScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import CourseDashboardScreen from '../screens/CourseDashboardScreen';
 import PurchaseScreen from '../screens/PurchaseScreen';
+import QuizListScreen from '../screens/QuizListScreen';
+import QuizScreen from '../screens/QuizScreen';
+import QuizResultScreen from '../screens/QuizResultScreen';
+import DocumentViewerScreen from '../screens/DocumentViewerScreen';
 import { COLORS } from '../constants/theme';
 
 const Stack = createStackNavigator();
@@ -88,8 +92,30 @@ const CourseNavigator = ({ initialCourseId }) => {
         }}
       />
       <Stack.Screen
+        name="DocumentViewer"
+        component={DocumentViewerScreen}
+      />
+      <Stack.Screen
         name="Purchase"
         component={PurchaseScreen}
+      />
+      <Stack.Screen
+        name="QuizList"
+        component={QuizListScreen}
+      />
+      <Stack.Screen
+        name="Quiz"
+        component={QuizScreen}
+        options={{
+          gestureEnabled: false,
+        }}
+      />
+      <Stack.Screen
+        name="QuizResult"
+        component={QuizResultScreen}
+        options={{
+          gestureEnabled: false,
+        }}
       />
     </Stack.Navigator>
   );

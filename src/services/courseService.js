@@ -89,6 +89,16 @@ class CourseService {
     }
   }
 
+  // Ders belge URL'ini getir (Requires Auth) - S3 için pre-signed URL döner
+  async getLessonDocumentUrl(lessonId) {
+    try {
+      const response = await apiClient.get(API_ENDPOINTS.LESSON_DOCUMENT_URL(lessonId));
+      return response.data.success ? response.data.data : response.data;
+    } catch (error) {
+      throw this.handleError(error);
+    }
+  }
+
   // Ders ilerlemesini getir (Requires Auth)
   async getLessonProgress(lessonId) {
     try {

@@ -33,6 +33,16 @@ class QuizService {
     }
   }
 
+  // Quiz denemesini iptal et (Requires Auth)
+  async abandonQuiz(attemptId) {
+    try {
+      const response = await apiClient.delete(API_ENDPOINTS.ABANDON_QUIZ(attemptId));
+      return response.data.success ? response.data.data : response.data;
+    } catch (error) {
+      throw this.handleError(error);
+    }
+  }
+
   // Kullanıcının quiz denemelerini getir (Requires Auth)
   async getMyQuizAttempts(page = 1, pageSize = 10) {
     try {

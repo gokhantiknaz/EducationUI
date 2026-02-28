@@ -13,6 +13,7 @@ import {
     Platform,
     useWindowDimensions,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { useEvent } from 'expo';
@@ -47,6 +48,7 @@ const VideoPlayerScreen = ({ navigation, route }) => {
     const [resumePosition, setResumePosition] = useState(0);
     const [hasResumed, setHasResumed] = useState(false);
     const [lessonsProgress, setLessonsProgress] = useState({});
+    const [progressLoaded, setProgressLoaded] = useState(false);
 
     // Settings / Speed
     const [settingsOpen, setSettingsOpen] = useState(false);
@@ -77,17 +79,30 @@ const VideoPlayerScreen = ({ navigation, route }) => {
 
     // Tek ders ilerlemesini yükle
     const loadLessonProgress = useCallback(async (lessonId) => {
+        setProgressLoaded(false);
         try {
             console.log('Loading progress for lesson:', lessonId);
             const progress = await courseService.getLessonProgress(lessonId);
-            console.log('Progress loaded:', progress);
-            if (progress && progress.lastWatchedPosition > 0 && !progress.isCompleted) {
-                setResumePosition(progress.lastWatchedPosition);
+            console.log('Progress loaded:', JSON.stringify(progress));
+
+            // lastWatchedPosition kontrolü
+            const position = progress?.lastWatchedPosition || 0;
+            const isCompleted = progress?.isCompleted || false;
+
+            console.log('Position:', position, 'isCompleted:', isCompleted);
+
+            if (position > 0 && !isCompleted) {
+                console.log('Setting resumePosition to:', position);
+                setResumePosition(position);
                 setHasResumed(false);
-                return progress.lastWatchedPosition;
+            } else {
+                setResumePosition(0);
             }
+            setProgressLoaded(true);
+            return position;
         } catch (err) {
-            console.log('Progress yüklenemedi:', err);
+            console.log('Progress yüklenemedi:', err?.message || err);
+            setProgressLoaded(true);
         }
         return 0;
     }, []);
@@ -154,23 +169,55 @@ const VideoPlayerScreen = ({ navigation, route }) => {
     const videoUrl = getValidVideoUrl(currentLesson?.videoUrl);
 
     const player = useVideoPlayer(videoUrl, (p) => {
-        p.loop = true;
+        p.loop = false; // Döngü kapalı - video bitince durmalı
         p.play();
     });
 
     const { isPlaying } = useEvent(player, 'playingChange', { isPlaying: player.playing });
     const { status } = useEvent(player, 'statusChange', { status: player.status });
 
+    // Zaman güncellemelerini takip et
+    const timeUpdateRef = useRef(null);
+
     useEffect(() => {
         isMounted.current = true;
         loadAllLessonsProgress();
+
+        // Zaman güncelleme interval'i
+        timeUpdateRef.current = setInterval(() => {
+            if (!isMounted.current || !player) return;
+
+            try {
+                const time = player.currentTime;
+                const duration = player.duration;
+
+                if (typeof time === 'number' && !isNaN(time)) {
+                    setCurrentTime(time);
+
+                    // iOS fix: eğer time > 0 ise video oynuyor demektir, loading'i kapat
+                    if (time > 0) {
+                        setIsLoading(false);
+                    }
+                }
+
+                if (typeof duration === 'number' && !isNaN(duration) && duration > 0) {
+                    setVideoDuration(prev => prev !== duration ? duration : prev);
+                }
+            } catch (e) {
+                // Sessizce geç
+            }
+        }, 250); // Daha sık güncelle
+
         return () => {
             isMounted.current = false;
             if (progressSaveInterval.current) {
                 clearInterval(progressSaveInterval.current);
             }
+            if (timeUpdateRef.current) {
+                clearInterval(timeUpdateRef.current);
+            }
         };
-    }, []);
+    }, [player]);
 
     // Ekrandan çıkarken progress kaydet
     useEffect(() => {
@@ -207,57 +254,122 @@ const VideoPlayerScreen = ({ navigation, route }) => {
         }
     }, [currentLesson?.id, loadLessonProgress]);
 
+    // iOS ve Android için farklı status değerleri olabilir
+    // isPlaying da loading kontrolünde kullanılacak
     useEffect(() => {
         if (!isMounted.current) return;
 
-        if (status === 'readyToPlay') {
-            setIsLoading(false);
-            try {
-                setVideoDuration(player.duration || 0);
+        console.log('Status changed to:', status, 'isPlaying:', isPlaying);
 
-                // Kaldığı yerden devam et
-                if (resumePosition > 0 && !hasResumed) {
-                    setTimeout(() => {
-                        try {
-                            console.log('Resuming from position:', resumePosition);
-                            player.currentTime = resumePosition;
-                            setHasResumed(true);
-                            showInfoToast(`${Math.floor(resumePosition)}. saniyeden devam ediliyor`, 'Devam');
-                        } catch (e) {
-                            console.log('Seek error:', e);
-                        }
-                    }, 500);
+        // Duration alma fonksiyonu
+        const tryGetDuration = () => {
+            try {
+                const duration = player?.duration;
+                if (typeof duration === 'number' && !isNaN(duration) && duration > 0) {
+                    console.log('Video duration set to:', duration);
+                    setVideoDuration(duration);
+                    return true;
                 }
-            } catch {}
+            } catch (e) {
+                console.log('Duration error:', e);
+            }
+            return false;
+        };
+
+        // readyToPlay veya video oynamaya başladıysa loading'i kapat
+        if (status === 'readyToPlay' || isPlaying) {
+            setIsLoading(false);
+
+            // Duration'ı al
+            if (!tryGetDuration()) {
+                setTimeout(() => {
+                    if (!tryGetDuration()) {
+                        const lessonDuration = currentLesson?.durationSeconds;
+                        if (lessonDuration && lessonDuration > 0) {
+                            console.log('Using lesson duration:', lessonDuration);
+                            setVideoDuration(lessonDuration);
+                        }
+                    }
+                }, 500);
+            }
         } else if (status === 'loading') {
             setIsLoading(true);
         } else if (status === 'error') {
             setIsLoading(false);
             showErrorToast('Video yüklenemedi', 'Hata');
         }
-    }, [status, resumePosition, hasResumed]);
+    }, [status, isPlaying, currentLesson?.durationSeconds]);
 
+    // iOS için loading timeout - 5 saniye sonra loading'i kapat
     useEffect(() => {
-        if (!player) return;
+        const loadingTimeout = setTimeout(() => {
+            if (isLoading && isMounted.current) {
+                console.log('Loading timeout - forcing isLoading to false');
+                setIsLoading(false);
+            }
+        }, 5000);
 
-        const interval = setInterval(() => {
-            if (!isMounted.current) return;
+        return () => clearTimeout(loadingTimeout);
+    }, [currentLesson?.id]);
 
+    // Kaldığı yerden devam et - ayrı useEffect
+    // iOS'ta status 'readyToPlay' olmayabilir, isPlaying kontrolü de eklendi
+    useEffect(() => {
+        // Tüm koşullar sağlanmalı
+        if (!player || !isMounted.current) return;
+
+        // Video hazır mı? (readyToPlay VEYA oynamaya başladı)
+        const isVideoReady = status === 'readyToPlay' || isPlaying || !isLoading;
+        if (!isVideoReady) return;
+
+        if (!progressLoaded) return; // Progress yüklenene kadar bekle
+        if (hasResumed) return;
+        if (resumePosition <= 0) {
+            console.log('No resume position, playing from start');
+            return;
+        }
+
+        console.log('Resume effect triggered:', { status, isPlaying, resumePosition, hasResumed, progressLoaded });
+
+        const resumeTimer = setTimeout(() => {
             try {
-                if (player.currentTime !== undefined) {
-                    setCurrentTime(player.currentTime);
+                console.log('Attempting to resume from:', resumePosition);
 
-                    if (player.duration > 0 && player.currentTime / player.duration >= 0.9) {
-                        if (currentLesson?.id && !currentLesson?.isCompleted) {
-                            handleLessonComplete();
-                        }
-                    }
+                // expo-video'da seek için currentTime'ı ayarla
+                player.currentTime = resumePosition;
+                console.log('Set player.currentTime to:', resumePosition);
+
+                setHasResumed(true);
+                setCurrentTime(resumePosition);
+                showInfoToast(`${Math.floor(resumePosition)}. saniyeden devam ediliyor`, 'Devam');
+            } catch (e) {
+                console.log('Resume seek error:', e?.message || e);
+                // iOS'ta alternatif seek yöntemi dene
+                try {
+                    player.seekBy(resumePosition - (player.currentTime || 0));
+                    console.log('Used seekBy as fallback');
+                } catch (e2) {
+                    console.log('SeekBy also failed:', e2?.message || e2);
                 }
-            } catch {}
-        }, 500);
+                setHasResumed(true);
+            }
+        }, 800);
 
-        return () => clearInterval(interval);
-    }, [player, currentLesson]);
+        return () => clearTimeout(resumeTimer);
+    }, [status, isPlaying, isLoading, resumePosition, hasResumed, player, progressLoaded]);
+
+    // Video %90 tamamlandığında dersi tamamla
+    useEffect(() => {
+        if (!player || !currentLesson?.id) return;
+        if (currentLesson?.isCompleted) return;
+
+        if (videoDuration > 0 && currentTime > 0) {
+            const watchPercentage = currentTime / videoDuration;
+            if (watchPercentage >= 0.9) {
+                handleLessonComplete();
+            }
+        }
+    }, [currentTime, videoDuration, currentLesson]);
 
     useEffect(() => {
         if (lessons.length > 0 && lesson) {
@@ -656,6 +768,32 @@ const VideoPlayerScreen = ({ navigation, route }) => {
                             {currentLesson?.description && (
                                 <Text style={styles.lessonDescription}>{currentLesson.description}</Text>
                             )}
+
+                            {/* Document Button - Video ile birlikte belge varsa göster */}
+                            {(currentLesson?.hasDocument || currentLesson?.documentUrl) && (
+                                <TouchableOpacity
+                                    style={styles.documentButton}
+                                    onPress={() => {
+                                        // Tüm belgeler için DocumentViewer kullan (indirme engellendi)
+                                        navigation.navigate('DocumentViewer', {
+                                            lesson: currentLesson,
+                                            courseName: courseName,
+                                            lessons: lessons.filter(l => l.hasDocument || l.documentUrl),
+                                        });
+                                    }}
+                                >
+                                    <Ionicons name="document-text" size={20} color="#E74C3C" />
+                                    <View style={styles.documentButtonText}>
+                                        <Text style={styles.documentButtonTitle}>
+                                            {currentLesson.documentName || 'Ders Belgesi'}
+                                        </Text>
+                                        <Text style={styles.documentButtonSubtitle}>
+                                            {currentLesson.documentType?.toUpperCase() || 'PDF'} - Görüntüle
+                                        </Text>
+                                    </View>
+                                    <Ionicons name="eye-outline" size={18} color={COLORS.textLight} />
+                                </TouchableOpacity>
+                            )}
                         </View>
 
                         {lessons.length > 0 && (
@@ -906,6 +1044,32 @@ const styles = StyleSheet.create({
     freeBadge: { backgroundColor: COLORS.success + '20', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4, marginLeft: 8 },
     freeBadgeText: { fontSize: 12, color: COLORS.success, fontWeight: '600' },
     lessonDescription: { fontSize: SIZES.body1, color: COLORS.textLight, lineHeight: 22 },
+
+    // Document button styles
+    documentButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#FEF2F2',
+        padding: 12,
+        borderRadius: 8,
+        marginTop: 12,
+        borderWidth: 1,
+        borderColor: '#FECACA',
+    },
+    documentButtonText: {
+        flex: 1,
+        marginLeft: 10,
+    },
+    documentButtonTitle: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: COLORS.text,
+    },
+    documentButtonSubtitle: {
+        fontSize: 12,
+        color: COLORS.textLight,
+        marginTop: 2,
+    },
 
     lessonListContainer: { padding: SIZES.padding },
     sectionTitle: { fontSize: SIZES.h3, fontWeight: 'bold', color: COLORS.text, marginBottom: SIZES.padding },

@@ -9,6 +9,7 @@ import MyListScreen from '../screens/MyListScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import CourseDetailScreen from '../screens/CourseDetailScreen';
 import VideoPlayerScreen from '../screens/VideoPlayerScreen';
+import DocumentViewerScreen from '../screens/DocumentViewerScreen';
 import QuizListScreen from '../screens/QuizListScreen';
 import QuizScreen from '../screens/QuizScreen';
 import QuizResultScreen from '../screens/QuizResultScreen';
@@ -104,6 +105,10 @@ const MainNavigator = () => {
                 options={{
                     gestureEnabled: false, // Swipe back'i devre dışı bırak (video izlerken)
                 }}
+            />
+            <Stack.Screen
+                name="DocumentViewer"
+                component={DocumentViewerScreen}
             />
             <Stack.Screen name="QuizList" component={QuizListScreen}/>
             <Stack.Screen

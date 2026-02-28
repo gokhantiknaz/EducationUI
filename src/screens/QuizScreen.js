@@ -28,6 +28,7 @@ const QuizScreen = ({ route, navigation }) => {
     isLoading,
     isSubmitting,
     error,
+    isResumed,
     startQuiz,
     setOptionAnswer,
     setTextAnswer,
@@ -36,6 +37,7 @@ const QuizScreen = ({ route, navigation }) => {
     goToQuestion,
     decrementTime,
     submitQuiz,
+    abandonQuiz,
     getAnsweredCount,
     isQuestionAnswered,
   } = useQuizStore();
@@ -115,6 +117,25 @@ const QuizScreen = ({ route, navigation }) => {
     } else {
       navigation.goBack();
     }
+  };
+
+  const handleAbandon = () => {
+    Alert.alert(
+      'Denemeyi İptal Et',
+      'Bu denemeyi iptal edip sıfırdan başlamak istiyor musunuz?',
+      [
+        { text: 'Vazgeç', style: 'cancel' },
+        {
+          text: 'İptal Et',
+          style: 'destructive',
+          onPress: async () => {
+            await abandonQuiz();
+            // Reload quiz with a fresh attempt
+            loadQuiz();
+          },
+        },
+      ]
+    );
   };
 
   const handleSubmit = async () => {
@@ -202,19 +223,132 @@ const QuizScreen = ({ route, navigation }) => {
   };
 
   const renderFillInBlankQuestion = (question) => {
-    const currentAnswer = answers[question.id] || '';
+    const currentAnswer = answers[question.id];
+    const hasOptions = question.options && question.options.length > 0;
+
+    // If no options, use text input mode
+    if (!hasOptions) {
+      return (
+        <View style={styles.fillInBlankContainer}>
+          <TextInput
+            style={styles.textInput}
+            value={currentAnswer || ''}
+            onChangeText={(text) => setTextAnswer(question.id, text)}
+            placeholder="Cevabınızı yazın..."
+            placeholderTextColor={COLORS.textLight}
+            multiline
+            numberOfLines={3}
+          />
+        </View>
+      );
+    }
+
+    // Drag-drop mode with options
+    const questionText = question.questionText || '';
+    const blankMarker = '{{blank}}';
+    const hasBlankMarker = questionText.includes(blankMarker);
+
+    // Get the selected option object
+    const selectedOptionObj = currentAnswer
+      ? question.options.find(o => o.id === currentAnswer)
+      : null;
+
+    // Handle option tap - directly place in blank
+    const handleOptionPress = (option) => {
+      // Directly set the answer
+      setOptionAnswer(question.id, option.id);
+    };
+
+    // Handle blank tap - remove the answer
+    const handleBlankPress = () => {
+      if (selectedOptionObj) {
+        setOptionAnswer(question.id, null);
+      }
+    };
+
+    // Render question text with blank
+    const renderQuestionWithBlank = () => {
+      if (!hasBlankMarker) {
+        // No marker, show text and blank below
+        return (
+          <View>
+            <Text style={styles.questionTextDragDrop}>{questionText}</Text>
+            <TouchableOpacity
+              style={[
+                styles.blankZone,
+                selectedOptionObj && styles.blankZoneFilled,
+              ]}
+              onPress={handleBlankPress}
+              activeOpacity={0.7}
+            >
+              {selectedOptionObj ? (
+                <View style={styles.blankZoneContent}>
+                  <Text style={styles.blankZoneText}>{selectedOptionObj.optionText}</Text>
+                  <Ionicons name="close-circle" size={18} color={COLORS.error} style={styles.blankRemoveIcon} />
+                </View>
+              ) : (
+                <Text style={styles.blankZonePlaceholder}>Seçenek seçin</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+        );
+      }
+
+      // Split text by blank marker
+      const parts = questionText.split(blankMarker);
+
+      return (
+        <View style={styles.questionTextContainer}>
+          <Text style={styles.questionTextDragDrop}>
+            {parts.map((part, index) => (
+              <React.Fragment key={index}>
+                {part}
+                {index < parts.length - 1 && (
+                  <Text
+                    style={[
+                      styles.inlineBlank,
+                      selectedOptionObj && styles.inlineBlankFilled,
+                    ]}
+                    onPress={handleBlankPress}
+                  >
+                    {selectedOptionObj
+                      ? ` ${selectedOptionObj.optionText} ✕ `
+                      : ' _______ '}
+                  </Text>
+                )}
+              </React.Fragment>
+            ))}
+          </Text>
+        </View>
+      );
+    };
+
+    // Filter out the already used option
+    const availableOptions = question.options.filter(
+      o => !selectedOptionObj || o.id !== selectedOptionObj.id
+    );
 
     return (
       <View style={styles.fillInBlankContainer}>
-        <TextInput
-          style={styles.textInput}
-          value={currentAnswer}
-          onChangeText={(text) => setTextAnswer(question.id, text)}
-          placeholder="Cevabınızı yazın..."
-          placeholderTextColor={COLORS.textLight}
-          multiline
-          numberOfLines={3}
-        />
+        {renderQuestionWithBlank()}
+
+        {availableOptions.length > 0 && (
+          <View style={styles.optionChipsContainer}>
+            <Text style={styles.optionChipsLabel}>Bir seçenek seçin</Text>
+            <View style={styles.optionChips}>
+              {availableOptions.map((option) => (
+                <TouchableOpacity
+                  key={option.id}
+                  style={styles.optionChip}
+                  onPress={() => handleOptionPress(option)}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.optionChipText}>{option.optionText}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        )}
       </View>
     );
   };
@@ -240,7 +374,10 @@ const QuizScreen = ({ route, navigation }) => {
           </View>
         </View>
 
-        <Text style={styles.questionText}>{question.questionText}</Text>
+        {/* For FillInBlank with options, text is rendered inside the component */}
+        {!(question.questionType === 'FillInBlank' && question.options?.length > 0) && (
+          <Text style={styles.questionText}>{question.questionText}</Text>
+        )}
 
         {question.imageUrl && (
           <View style={styles.questionImageContainer}>
@@ -398,6 +535,17 @@ const QuizScreen = ({ route, navigation }) => {
           {getAnsweredCount()} / {currentQuiz.questions.length} cevaplandı
         </Text>
       </View>
+
+      {/* Resumed Banner */}
+      {isResumed && (
+        <View style={styles.resumedBanner}>
+          <Ionicons name="refresh-circle" size={18} color={COLORS.warning} />
+          <Text style={styles.resumedText}>Kaldığınız yerden devam ediyorsunuz</Text>
+          <TouchableOpacity onPress={handleAbandon} style={styles.abandonButton}>
+            <Text style={styles.abandonText}>İptal</Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
       {/* Question */}
       <ScrollView
@@ -568,6 +716,32 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 4,
   },
+  resumedBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.warning + '15',
+    paddingVertical: 8,
+    paddingHorizontal: SIZES.padding,
+    gap: 8,
+  },
+  resumedText: {
+    fontSize: SIZES.body3,
+    color: COLORS.warning,
+    fontWeight: '500',
+    flex: 1,
+  },
+  abandonButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    backgroundColor: COLORS.error + '15',
+    borderRadius: 12,
+  },
+  abandonText: {
+    fontSize: SIZES.body3,
+    color: COLORS.error,
+    fontWeight: '600',
+  },
   content: {
     flex: 1,
   },
@@ -666,6 +840,115 @@ const styles = StyleSheet.create({
     textAlignVertical: 'top',
     borderWidth: 1,
     borderColor: COLORS.border,
+  },
+  // Drag-drop FillInBlank styles
+  questionTextContainer: {
+    marginBottom: SIZES.padding,
+  },
+  questionTextDragDrop: {
+    fontSize: SIZES.body1,
+    color: COLORS.text,
+    lineHeight: 28,
+  },
+  inlineBlank: {
+    backgroundColor: COLORS.primary + '20',
+    color: COLORS.primary,
+    fontWeight: '600',
+    paddingHorizontal: 4,
+    borderRadius: 4,
+  },
+  inlineBlankFilled: {
+    backgroundColor: COLORS.success + '20',
+    color: COLORS.success,
+  },
+  inlineBlankActive: {
+    backgroundColor: COLORS.warning + '30',
+    color: COLORS.warning,
+  },
+  blankZone: {
+    backgroundColor: COLORS.backgroundDark,
+    borderWidth: 2,
+    borderColor: COLORS.border,
+    borderStyle: 'dashed',
+    borderRadius: SIZES.radiusSmall,
+    padding: SIZES.padding,
+    marginTop: SIZES.padding,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 50,
+  },
+  blankZoneFilled: {
+    backgroundColor: COLORS.success + '10',
+    borderColor: COLORS.success,
+    borderStyle: 'solid',
+  },
+  blankZoneContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  blankRemoveIcon: {
+    marginLeft: 4,
+  },
+  blankZoneText: {
+    fontSize: SIZES.body1,
+    fontWeight: '600',
+    color: COLORS.success,
+  },
+  blankZonePlaceholder: {
+    fontSize: SIZES.body2,
+    color: COLORS.textLight,
+    fontStyle: 'italic',
+  },
+  optionChipsContainer: {
+    marginTop: SIZES.padding,
+    paddingTop: SIZES.padding,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
+  },
+  optionChipsLabel: {
+    fontSize: SIZES.body3,
+    color: COLORS.textLight,
+    marginBottom: SIZES.paddingSmall,
+    textAlign: 'center',
+  },
+  optionChips: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  optionChip: {
+    backgroundColor: COLORS.backgroundDark,
+    paddingHorizontal: SIZES.padding,
+    paddingVertical: SIZES.paddingSmall,
+    borderRadius: 20,
+    borderWidth: 2,
+    borderColor: COLORS.border,
+  },
+  optionChipSelected: {
+    backgroundColor: COLORS.primary + '15',
+    borderColor: COLORS.primary,
+  },
+  optionChipText: {
+    fontSize: SIZES.body2,
+    color: COLORS.text,
+    fontWeight: '500',
+  },
+  optionChipTextSelected: {
+    color: COLORS.primary,
+  },
+  clearAnswerButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: SIZES.padding,
+    padding: SIZES.paddingSmall,
+  },
+  clearAnswerText: {
+    fontSize: SIZES.body3,
+    color: COLORS.error,
+    marginLeft: 4,
   },
   pointsText: {
     fontSize: SIZES.body3,

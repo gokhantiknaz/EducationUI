@@ -14,6 +14,7 @@ const useQuizStore = create((set, get) => ({
   isSubmitting: false,
   error: null,
   timeRemaining: null, // seconds
+  isResumed: false, // true if continuing an existing attempt
 
   // Actions
   setLoading: (isLoading) => set({ isLoading }),
@@ -41,13 +42,14 @@ const useQuizStore = create((set, get) => ({
 
   // Start a quiz
   startQuiz: async (quizId) => {
-    set({ isLoading: true, error: null, answers: {}, currentQuestionIndex: 0 });
+    set({ isLoading: true, error: null, answers: {}, currentQuestionIndex: 0, isResumed: false });
     try {
       const response = await quizService.startQuiz(quizId);
 
-      // Response: { attemptId, quiz: { ... questions }, startedAt }
+      // Response: { attemptId, quiz: { ... questions }, startedAt, isResumed }
       const quiz = response.quiz || response;
       const attemptId = response.attemptId;
+      const isResumed = response.isResumed || false;
 
       // Sort questions by displayOrder
       if (quiz.questions) {
@@ -60,13 +62,24 @@ const useQuizStore = create((set, get) => ({
         });
       }
 
+      // Calculate remaining time if resuming
+      let timeRemaining = null;
+      if (quiz.timeLimit) {
+        const startTime = new Date(response.startedAt).getTime();
+        const now = Date.now();
+        const elapsedSeconds = Math.floor((now - startTime) / 1000);
+        const totalSeconds = quiz.timeLimit * 60;
+        timeRemaining = Math.max(0, totalSeconds - elapsedSeconds);
+      }
+
       set({
         currentQuiz: quiz,
         currentAttempt: {
           id: attemptId,
           startedAt: response.startedAt || new Date().toISOString(),
         },
-        timeRemaining: quiz.timeLimit ? quiz.timeLimit * 60 : null, // Convert minutes to seconds
+        timeRemaining: timeRemaining,
+        isResumed: isResumed,
         isLoading: false,
       });
 
@@ -180,10 +193,23 @@ const useQuizStore = create((set, get) => ({
         const question = currentQuiz.questions.find(q => q.id === questionId);
 
         if (question?.questionType === 'FillInBlank') {
-          formattedAnswers.push({
-            questionId,
-            textAnswer: answer,
-          });
+          // Check if answer is an option ID (GUID format) or text
+          const hasOptions = question.options && question.options.length > 0;
+          const isOptionId = hasOptions && question.options.some(o => o.id === answer);
+
+          if (isOptionId) {
+            // Drag-drop mode - send as selectedOptionId
+            formattedAnswers.push({
+              questionId,
+              selectedOptionId: answer,
+            });
+          } else {
+            // Text input mode - send as textAnswer
+            formattedAnswers.push({
+              questionId,
+              textAnswer: answer,
+            });
+          }
         } else if (question?.questionType === 'MultipleChoice') {
           // Multiple choice - send array of option IDs
           const optionIds = Array.isArray(answer) ? answer : [answer];
@@ -257,6 +283,28 @@ const useQuizStore = create((set, get) => ({
     return answer !== undefined && answer !== '';
   },
 
+  // Abandon quiz attempt
+  abandonQuiz: async () => {
+    const { currentAttempt } = get();
+    if (!currentAttempt) return;
+
+    try {
+      await quizService.abandonQuiz(currentAttempt.id);
+    } catch (error) {
+      console.log('Abandon error:', error);
+    }
+
+    set({
+      currentQuiz: null,
+      currentAttempt: null,
+      quizResult: null,
+      answers: {},
+      currentQuestionIndex: 0,
+      timeRemaining: null,
+      isResumed: false,
+    });
+  },
+
   // Reset quiz state
   resetQuiz: () => set({
     currentQuiz: null,
@@ -265,6 +313,7 @@ const useQuizStore = create((set, get) => ({
     answers: {},
     currentQuestionIndex: 0,
     timeRemaining: null,
+    isResumed: false,
   }),
 
   // Clear all

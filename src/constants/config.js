@@ -15,8 +15,8 @@ export const OAUTH_CONFIG = {
 // export const API_BASE_URL = 'https://172.16.6.113:52564/api'; // Yerel IP adresi
 // export const API_BASE_URL = 'http://10.0.2.2:52564/api';// Android emülatör için (alternatif)
 //export const API_BASE_URL = 'http://localhost:52564/api'; // iOS Simulator için
-//export const API_BASE_URL='http://192.168.56.1:52563/api';
-export const API_BASE_URL='http://192.168.1.98:52563/api';
+export const API_BASE_URL='http://192.168.56.1:52563/api';
+// export const API_BASE_URL='http://192.168.1.98:52563/api';
 // export const API_BASE_URL = 'https://your-production-api.com/api'; // Production için
 
 // API Endpoints - Mobile App (UI) endpoints
@@ -77,6 +77,11 @@ export const API_ENDPOINTS = {
   SUBMIT_QUIZ: (attemptId) => `/ui/quizzes/attempts/${attemptId}/submit`,
   ABANDON_QUIZ: (attemptId) => `/ui/quizzes/attempts/${attemptId}/abandon`,
   MY_QUIZ_ATTEMPTS: '/ui/quizzes/attempts/my-attempts',
+
+  // Code Challenge (Requires Auth)
+  SUBMIT_CODE: '/ui/quizzes/code/submit',
+  CODE_SUBMISSION_STATUS: (submissionId) => `/ui/quizzes/code/status/${submissionId}`,
+  CODE_CHALLENGE_QUESTION: (questionId) => `/ui/quizzes/code/question/${questionId}`,
 
   // Certificates (Requires Auth for generate/list, Public for verify)
   MY_CERTIFICATES: '/ui/certificates/my-certificates',

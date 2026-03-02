@@ -55,6 +55,41 @@ class QuizService {
     }
   }
 
+  // Submit code for a CodeChallenge question (Requires Auth)
+  async submitCode(attemptId, questionId, sourceCode, language) {
+    try {
+      const response = await apiClient.post(API_ENDPOINTS.SUBMIT_CODE, {
+        attemptId,
+        questionId,
+        sourceCode,
+        language,
+      });
+      return response.data.success ? response.data.data : response.data;
+    } catch (error) {
+      throw this.handleError(error);
+    }
+  }
+
+  // Get code submission status (Requires Auth)
+  async getCodeSubmissionStatus(submissionId) {
+    try {
+      const response = await apiClient.get(API_ENDPOINTS.CODE_SUBMISSION_STATUS(submissionId));
+      return response.data.success ? response.data.data : response.data;
+    } catch (error) {
+      throw this.handleError(error);
+    }
+  }
+
+  // Get code challenge question details (Requires Auth)
+  async getCodeChallengeQuestion(questionId) {
+    try {
+      const response = await apiClient.get(API_ENDPOINTS.CODE_CHALLENGE_QUESTION(questionId));
+      return response.data.success ? response.data.data : response.data;
+    } catch (error) {
+      throw this.handleError(error);
+    }
+  }
+
   // Error handling
   handleError(error) {
     if (error.response) {

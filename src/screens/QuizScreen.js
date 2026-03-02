@@ -15,6 +15,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { COLORS, SIZES, SHADOWS } from '../constants/theme';
 import useQuizStore from '../store/quizStore';
 import Button from '../components/Button';
+import CodeEditor from '../components/CodeEditor';
+import TestCaseViewer from '../components/TestCaseViewer';
+import CodeSubmissionStatus from '../components/CodeSubmissionStatus';
 
 const QuizScreen = ({ route, navigation }) => {
   const { quizId, quizTitle } = route.params;
@@ -40,6 +43,15 @@ const QuizScreen = ({ route, navigation }) => {
     abandonQuiz,
     getAnsweredCount,
     isQuestionAnswered,
+    // Code Challenge
+    codeSubmissions,
+    codeLanguages,
+    codeSources,
+    isSubmittingCode,
+    setCodeLanguage,
+    setCodeSource,
+    submitCode,
+    getCodeSubmission,
   } = useQuizStore();
 
   const [showQuestionNav, setShowQuestionNav] = useState(false);
@@ -353,6 +365,98 @@ const QuizScreen = ({ route, navigation }) => {
     );
   };
 
+  const handleRunCode = async (questionId) => {
+    try {
+      await submitCode(questionId);
+    } catch (err) {
+      Alert.alert('Error', err.message || 'Could not submit code');
+    }
+  };
+
+  const renderCodeChallengeQuestion = (question) => {
+    const currentCode = codeSources[question.id] || question.starterCode || '';
+    const currentLanguage = codeLanguages[question.id] || (question.allowedLanguages?.[0]) || 'python';
+    const submission = getCodeSubmission(question.id);
+
+    // Parse allowed languages from JSON string if needed
+    let allowedLanguages = question.allowedLanguages;
+    if (typeof allowedLanguages === 'string') {
+      try {
+        allowedLanguages = JSON.parse(allowedLanguages);
+      } catch (e) {
+        allowedLanguages = ['python', 'javascript', 'csharp', 'c'];
+      }
+    }
+
+    // Get sample test cases (non-hidden)
+    const sampleTestCases = (question.testCases || []).filter(tc => !tc.isHidden);
+
+    return (
+      <View style={styles.codeChallengeContainer}>
+        {/* Function Signature */}
+        {question.functionSignature && (
+          <View style={styles.functionSignatureContainer}>
+            <Text style={styles.functionSignatureLabel}>Function Signature:</Text>
+            <View style={styles.functionSignatureCode}>
+              <Text style={styles.functionSignatureText}>{question.functionSignature}</Text>
+            </View>
+          </View>
+        )}
+
+        {/* Code Editor */}
+        <CodeEditor
+          code={currentCode}
+          language={currentLanguage}
+          starterCode={question.starterCode}
+          allowedLanguages={allowedLanguages}
+          onCodeChange={(code) => setCodeSource(question.id, code)}
+          onLanguageChange={(lang) => setCodeLanguage(question.id, lang)}
+          editable={!isSubmittingCode}
+        />
+
+        {/* Sample Test Cases */}
+        <TestCaseViewer
+          testCases={sampleTestCases}
+          testResults={submission?.testResults || []}
+          showResults={!!submission && submission.status !== 'Pending' && submission.status !== 'Running'}
+        />
+
+        {/* Run Code Button */}
+        <View style={styles.runCodeContainer}>
+          <Button
+            title={isSubmittingCode ? 'Running...' : 'Run Code'}
+            onPress={() => handleRunCode(question.id)}
+            disabled={isSubmittingCode || !currentCode.trim()}
+            loading={isSubmittingCode}
+            icon={<Ionicons name="play" size={18} color={COLORS.background} />}
+            style={styles.runCodeButton}
+          />
+        </View>
+
+        {/* Submission Status */}
+        {submission && (
+          <CodeSubmissionStatus submission={submission} />
+        )}
+
+        {/* Time/Memory Limits */}
+        <View style={styles.limitsContainer}>
+          {question.timeLimitSeconds && (
+            <View style={styles.limitItem}>
+              <Ionicons name="time-outline" size={14} color={COLORS.textLight} />
+              <Text style={styles.limitText}>Time Limit: {question.timeLimitSeconds}s</Text>
+            </View>
+          )}
+          {question.memoryLimitKb && (
+            <View style={styles.limitItem}>
+              <Ionicons name="hardware-chip-outline" size={14} color={COLORS.textLight} />
+              <Text style={styles.limitText}>Memory Limit: {Math.round(question.memoryLimitKb / 1024)}MB</Text>
+            </View>
+          )}
+        </View>
+      </View>
+    );
+  };
+
   const renderQuestion = () => {
     if (!currentQuiz || !currentQuiz.questions) return null;
 
@@ -365,16 +469,23 @@ const QuizScreen = ({ route, navigation }) => {
           <Text style={styles.questionNumber}>
             Question {currentQuestionIndex + 1} / {currentQuiz.questions.length}
           </Text>
-          <View style={styles.questionTypeBadge}>
-            <Text style={styles.questionTypeText}>
+          <View style={[
+            styles.questionTypeBadge,
+            question.questionType === 'CodeChallenge' && styles.questionTypeBadgeCode,
+          ]}>
+            <Text style={[
+              styles.questionTypeText,
+              question.questionType === 'CodeChallenge' && styles.questionTypeTextCode,
+            ]}>
               {question.questionType === 'SingleChoice' && 'Single Choice'}
               {question.questionType === 'MultipleChoice' && 'Multiple Choice'}
               {question.questionType === 'FillInBlank' && 'Fill in the Blank'}
+              {question.questionType === 'CodeChallenge' && 'Code Challenge'}
             </Text>
           </View>
         </View>
 
-        {/* For FillInBlank with options, text is rendered inside the component */}
+        {/* Question text - skip for FillInBlank with options (handled inside) */}
         {!(question.questionType === 'FillInBlank' && question.options?.length > 0) && (
           <Text style={styles.questionText}>{question.questionText}</Text>
         )}
@@ -385,7 +496,9 @@ const QuizScreen = ({ route, navigation }) => {
           </View>
         )}
 
-        {question.questionType === 'FillInBlank'
+        {question.questionType === 'CodeChallenge'
+          ? renderCodeChallengeQuestion(question)
+          : question.questionType === 'FillInBlank'
           ? renderFillInBlankQuestion(question)
           : renderOptionQuestion(question)}
 
@@ -1065,6 +1178,56 @@ const styles = StyleSheet.create({
     marginRight: 4,
   },
   legendText: {
+    fontSize: SIZES.body3,
+    color: COLORS.textLight,
+  },
+  // Code Challenge styles
+  questionTypeBadgeCode: {
+    backgroundColor: '#1E1E1E',
+  },
+  questionTypeTextCode: {
+    color: '#D4D4D4',
+  },
+  codeChallengeContainer: {
+    marginTop: SIZES.paddingSmall,
+  },
+  functionSignatureContainer: {
+    marginBottom: SIZES.padding,
+  },
+  functionSignatureLabel: {
+    fontSize: SIZES.body3,
+    fontWeight: '600',
+    color: COLORS.textLight,
+    marginBottom: 4,
+  },
+  functionSignatureCode: {
+    backgroundColor: '#1E1E1E',
+    padding: SIZES.paddingSmall,
+    borderRadius: SIZES.radiusSmall,
+  },
+  functionSignatureText: {
+    fontFamily: 'monospace',
+    fontSize: 14,
+    color: '#9CDCFE',
+  },
+  runCodeContainer: {
+    marginTop: SIZES.padding,
+  },
+  runCodeButton: {
+    backgroundColor: COLORS.success,
+  },
+  limitsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginTop: SIZES.padding,
+    gap: SIZES.padding,
+  },
+  limitItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  limitText: {
     fontSize: SIZES.body3,
     color: COLORS.textLight,
   },

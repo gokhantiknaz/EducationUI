@@ -16,6 +16,13 @@ const useQuizStore = create((set, get) => ({
   timeRemaining: null, // seconds
   isResumed: false, // true if continuing an existing attempt
 
+  // Code Challenge State
+  codeSubmissions: {}, // { questionId: submissionData }
+  codeLanguages: {}, // { questionId: selectedLanguage }
+  codeSources: {}, // { questionId: sourceCode }
+  isSubmittingCode: false,
+  codeSubmissionPolling: {}, // { submissionId: intervalId }
+
   // Actions
   setLoading: (isLoading) => set({ isLoading }),
   setError: (error) => set({ error }),
@@ -266,18 +273,40 @@ const useQuizStore = create((set, get) => ({
 
   // Get answered count
   getAnsweredCount: () => {
-    const { answers, currentQuiz } = get();
+    const { answers, currentQuiz, codeSubmissions } = get();
     if (!currentQuiz) return 0;
-    return Object.keys(answers).filter(qId => {
-      const answer = answers[qId];
-      if (Array.isArray(answer)) return answer.length > 0;
-      return answer !== undefined && answer !== '';
-    }).length;
+
+    let count = 0;
+    currentQuiz.questions.forEach(q => {
+      if (q.questionType === 'CodeChallenge') {
+        // For CodeChallenge, check if there's a submission
+        const submission = codeSubmissions[q.id];
+        if (submission && (submission.status === 'Accepted' || submission.testCasesPassed > 0)) {
+          count++;
+        }
+      } else {
+        const answer = answers[q.id];
+        if (Array.isArray(answer)) {
+          if (answer.length > 0) count++;
+        } else if (answer !== undefined && answer !== '') {
+          count++;
+        }
+      }
+    });
+    return count;
   },
 
   // Check if question is answered
   isQuestionAnswered: (questionId) => {
-    const { answers } = get();
+    const { answers, codeSubmissions, currentQuiz } = get();
+
+    // Check if it's a CodeChallenge question
+    const question = currentQuiz?.questions?.find(q => q.id === questionId);
+    if (question?.questionType === 'CodeChallenge') {
+      const submission = codeSubmissions[questionId];
+      return submission && (submission.status === 'Accepted' || submission.testCasesPassed > 0);
+    }
+
     const answer = answers[questionId];
     if (Array.isArray(answer)) return answer.length > 0;
     return answer !== undefined && answer !== '';
@@ -285,8 +314,13 @@ const useQuizStore = create((set, get) => ({
 
   // Abandon quiz attempt
   abandonQuiz: async () => {
-    const { currentAttempt } = get();
+    const { currentAttempt, codeSubmissionPolling } = get();
     if (!currentAttempt) return;
+
+    // Clear all polling intervals
+    Object.values(codeSubmissionPolling).forEach(intervalId => {
+      if (intervalId) clearInterval(intervalId);
+    });
 
     try {
       await quizService.abandonQuiz(currentAttempt.id);
@@ -302,34 +336,224 @@ const useQuizStore = create((set, get) => ({
       currentQuestionIndex: 0,
       timeRemaining: null,
       isResumed: false,
+      codeSubmissions: {},
+      codeLanguages: {},
+      codeSources: {},
+      isSubmittingCode: false,
+      codeSubmissionPolling: {},
     });
   },
 
+  // Code Challenge Actions
+
+  // Set code language for a question
+  setCodeLanguage: (questionId, language) => {
+    const { codeLanguages } = get();
+    set({
+      codeLanguages: {
+        ...codeLanguages,
+        [questionId]: language,
+      },
+    });
+  },
+
+  // Set source code for a question
+  setCodeSource: (questionId, sourceCode) => {
+    const { codeSources } = get();
+    set({
+      codeSources: {
+        ...codeSources,
+        [questionId]: sourceCode,
+      },
+    });
+  },
+
+  // Submit code for evaluation
+  submitCode: async (questionId) => {
+    const { currentAttempt, codeLanguages, codeSources } = get();
+    if (!currentAttempt) {
+      throw new Error('Quiz attempt not found');
+    }
+
+    const language = codeLanguages[questionId];
+    const sourceCode = codeSources[questionId];
+
+    if (!language) {
+      throw new Error('Please select a programming language');
+    }
+    if (!sourceCode || sourceCode.trim() === '') {
+      throw new Error('Please write some code before submitting');
+    }
+
+    set({ isSubmittingCode: true, error: null });
+
+    try {
+      const response = await quizService.submitCode(
+        currentAttempt.id,
+        questionId,
+        sourceCode,
+        language
+      );
+
+      // Store initial submission data
+      const { codeSubmissions } = get();
+      set({
+        codeSubmissions: {
+          ...codeSubmissions,
+          [questionId]: {
+            ...response,
+            isPolling: true,
+          },
+        },
+        isSubmittingCode: false,
+      });
+
+      // Start polling for status if submission is pending
+      if (response.status === 'Pending' || response.status === 'Running') {
+        get().startPollingSubmission(questionId, response.submissionId);
+      }
+
+      return response;
+    } catch (error) {
+      set({
+        error: error.message || 'Could not submit code',
+        isSubmittingCode: false,
+      });
+      throw error;
+    }
+  },
+
+  // Start polling for submission status
+  startPollingSubmission: (questionId, submissionId) => {
+    const { codeSubmissionPolling } = get();
+
+    // Clear existing polling for this question
+    if (codeSubmissionPolling[submissionId]) {
+      clearInterval(codeSubmissionPolling[submissionId]);
+    }
+
+    const pollInterval = setInterval(async () => {
+      try {
+        const status = await quizService.getCodeSubmissionStatus(submissionId);
+        const { codeSubmissions } = get();
+
+        set({
+          codeSubmissions: {
+            ...codeSubmissions,
+            [questionId]: {
+              ...status,
+              isPolling: status.status === 'Pending' || status.status === 'Running',
+            },
+          },
+        });
+
+        // Stop polling if submission is complete
+        if (status.status !== 'Pending' && status.status !== 'Running') {
+          get().stopPollingSubmission(submissionId);
+
+          // Update the answer for quiz submission
+          const { answers } = get();
+          set({
+            answers: {
+              ...answers,
+              [questionId]: {
+                type: 'CodeChallenge',
+                submissionId: submissionId,
+                passed: status.status === 'Accepted',
+                testCasesPassed: status.testCasesPassed,
+                totalTestCases: status.totalTestCases,
+              },
+            },
+          });
+        }
+      } catch (error) {
+        console.log('Polling error:', error);
+      }
+    }, 2000); // Poll every 2 seconds
+
+    set({
+      codeSubmissionPolling: {
+        ...codeSubmissionPolling,
+        [submissionId]: pollInterval,
+      },
+    });
+  },
+
+  // Stop polling for a specific submission
+  stopPollingSubmission: (submissionId) => {
+    const { codeSubmissionPolling } = get();
+    if (codeSubmissionPolling[submissionId]) {
+      clearInterval(codeSubmissionPolling[submissionId]);
+      const newPolling = { ...codeSubmissionPolling };
+      delete newPolling[submissionId];
+      set({ codeSubmissionPolling: newPolling });
+    }
+  },
+
+  // Get code submission for a question
+  getCodeSubmission: (questionId) => {
+    const { codeSubmissions } = get();
+    return codeSubmissions[questionId] || null;
+  },
+
+  // Check if code question is answered (has successful submission)
+  isCodeQuestionAnswered: (questionId) => {
+    const { codeSubmissions } = get();
+    const submission = codeSubmissions[questionId];
+    return submission && submission.status === 'Accepted';
+  },
+
   // Reset quiz state
-  resetQuiz: () => set({
-    currentQuiz: null,
-    currentAttempt: null,
-    quizResult: null,
-    answers: {},
-    currentQuestionIndex: 0,
-    timeRemaining: null,
-    isResumed: false,
-  }),
+  resetQuiz: () => {
+    const { codeSubmissionPolling } = get();
+    // Clear all polling intervals
+    Object.values(codeSubmissionPolling).forEach(intervalId => {
+      if (intervalId) clearInterval(intervalId);
+    });
+
+    set({
+      currentQuiz: null,
+      currentAttempt: null,
+      quizResult: null,
+      answers: {},
+      currentQuestionIndex: 0,
+      timeRemaining: null,
+      isResumed: false,
+      codeSubmissions: {},
+      codeLanguages: {},
+      codeSources: {},
+      isSubmittingCode: false,
+      codeSubmissionPolling: {},
+    });
+  },
 
   // Clear all
-  clearAll: () => set({
-    quizzes: [],
-    currentQuiz: null,
-    currentAttempt: null,
-    quizResult: null,
-    myAttempts: [],
-    answers: {},
-    currentQuestionIndex: 0,
-    timeRemaining: null,
-    isLoading: false,
-    isSubmitting: false,
-    error: null,
-  }),
+  clearAll: () => {
+    const { codeSubmissionPolling } = get();
+    // Clear all polling intervals
+    Object.values(codeSubmissionPolling).forEach(intervalId => {
+      if (intervalId) clearInterval(intervalId);
+    });
+
+    set({
+      quizzes: [],
+      currentQuiz: null,
+      currentAttempt: null,
+      quizResult: null,
+      myAttempts: [],
+      answers: {},
+      currentQuestionIndex: 0,
+      timeRemaining: null,
+      isLoading: false,
+      isSubmitting: false,
+      error: null,
+      codeSubmissions: {},
+      codeLanguages: {},
+      codeSources: {},
+      isSubmittingCode: false,
+      codeSubmissionPolling: {},
+    });
+  },
 }));
 
 export default useQuizStore;

@@ -28,9 +28,9 @@ const QuizResultScreen = ({ route, navigation }) => {
     if (mins >= 60) {
       const hours = Math.floor(mins / 60);
       const remainingMins = mins % 60;
-      return `${hours} saat ${remainingMins} dk`;
+      return `${hours}h ${remainingMins}m`;
     }
-    return secs > 0 ? `${mins} dk ${secs} sn` : `${mins} dk`;
+    return secs > 0 ? `${mins}m ${secs}s` : `${mins}m`;
   };
 
   const handleDone = () => {
@@ -73,13 +73,13 @@ const QuizResultScreen = ({ route, navigation }) => {
           styles.resultTitle,
           isPassed ? styles.resultTitlePassed : styles.resultTitleFailed,
         ]}>
-          {isPassed ? 'Tebrikler!' : 'Maalesef'}
+          {isPassed ? 'Congratulations!' : 'Unfortunately'}
         </Text>
 
         <Text style={styles.resultSubtitle}>
           {isPassed
-            ? 'Quiz\'i başarıyla tamamladınız!'
-            : 'Quiz\'i geçemediniz. Tekrar deneyin.'}
+            ? 'You have successfully completed the quiz!'
+            : 'You did not pass the quiz. Try again.'}
         </Text>
 
         {/* Quiz Title */}
@@ -91,7 +91,7 @@ const QuizResultScreen = ({ route, navigation }) => {
             <Text style={[styles.scoreText, { color: getScoreColor() }]}>
               %{Math.round(score)}
             </Text>
-            <Text style={styles.scoreLabel}>Puan</Text>
+            <Text style={styles.scoreLabel}>Score</Text>
           </View>
         </View>
 
@@ -102,7 +102,7 @@ const QuizResultScreen = ({ route, navigation }) => {
               <Ionicons name="checkmark" size={24} color={COLORS.success} />
             </View>
             <Text style={styles.statValue}>{correctAnswers}</Text>
-            <Text style={styles.statLabel}>Doğru</Text>
+            <Text style={styles.statLabel}>Correct</Text>
           </View>
 
           <View style={styles.statItem}>
@@ -110,7 +110,7 @@ const QuizResultScreen = ({ route, navigation }) => {
               <Ionicons name="close" size={24} color={COLORS.error} />
             </View>
             <Text style={styles.statValue}>{totalQuestions - correctAnswers}</Text>
-            <Text style={styles.statLabel}>Yanlış</Text>
+            <Text style={styles.statLabel}>Wrong</Text>
           </View>
 
           <View style={styles.statItem}>
@@ -118,7 +118,7 @@ const QuizResultScreen = ({ route, navigation }) => {
               <Ionicons name="help" size={24} color={COLORS.info} />
             </View>
             <Text style={styles.statValue}>{totalQuestions}</Text>
-            <Text style={styles.statLabel}>Toplam</Text>
+            <Text style={styles.statLabel}>Total</Text>
           </View>
 
           <View style={styles.statItem}>
@@ -126,14 +126,14 @@ const QuizResultScreen = ({ route, navigation }) => {
               <Ionicons name="time" size={24} color={COLORS.primary} />
             </View>
             <Text style={styles.statValue}>{formatTime(timeSpent)}</Text>
-            <Text style={styles.statLabel}>Süre</Text>
+            <Text style={styles.statLabel}>Time</Text>
           </View>
         </View>
 
         {/* Feedback */}
         {result?.feedback && result.feedback.length > 0 && (
           <View style={styles.feedbackContainer}>
-            <Text style={styles.feedbackTitle}>Soru Detayları</Text>
+            <Text style={styles.feedbackTitle}>Question Details</Text>
             {result.feedback.map((item, index) => (
               <View key={index} style={styles.feedbackItem}>
                 <Ionicons
@@ -142,7 +142,7 @@ const QuizResultScreen = ({ route, navigation }) => {
                   color={item.isCorrect ? COLORS.success : COLORS.error}
                 />
                 <Text style={styles.feedbackText}>
-                  Soru {index + 1}: {item.isCorrect ? 'Doğru' : 'Yanlış'}
+                  Question {index + 1}: {item.isCorrect ? 'Correct' : 'Wrong'}
                 </Text>
               </View>
             ))}
@@ -154,14 +154,14 @@ const QuizResultScreen = ({ route, navigation }) => {
       <View style={styles.buttonContainer}>
         {!isPassed && (
           <Button
-            title="Tekrar Dene"
+            title="Try Again"
             onPress={handleRetry}
             variant="outline"
             style={styles.retryButton}
           />
         )}
         <Button
-          title="Tamamla"
+          title="Done"
           onPress={handleDone}
           style={styles.doneButton}
         />

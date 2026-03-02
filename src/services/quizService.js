@@ -2,7 +2,7 @@ import apiClient from './api';
 import { API_ENDPOINTS } from '../constants/config';
 
 class QuizService {
-  // Kursa ait quiz'leri getir (Requires Auth)
+  // Get quizzes for a course (Requires Auth)
   async getCourseQuizzes(courseId) {
     try {
       const response = await apiClient.get(API_ENDPOINTS.COURSE_QUIZZES(courseId));
@@ -12,7 +12,7 @@ class QuizService {
     }
   }
 
-  // Quiz'i başlat (Requires Auth)
+  // Start quiz (Requires Auth)
   async startQuiz(quizId) {
     try {
       const response = await apiClient.post(API_ENDPOINTS.START_QUIZ(quizId));
@@ -22,7 +22,7 @@ class QuizService {
     }
   }
 
-  // Quiz cevaplarını gönder (Requires Auth)
+  // Submit quiz answers (Requires Auth)
   // attemptId: quiz attempt ID, answers: array of { questionId, selectedOptionId }
   async submitQuiz(attemptId, answers) {
     try {
@@ -33,7 +33,7 @@ class QuizService {
     }
   }
 
-  // Quiz denemesini iptal et (Requires Auth)
+  // Abandon quiz attempt (Requires Auth)
   async abandonQuiz(attemptId) {
     try {
       const response = await apiClient.delete(API_ENDPOINTS.ABANDON_QUIZ(attemptId));
@@ -43,7 +43,7 @@ class QuizService {
     }
   }
 
-  // Kullanıcının quiz denemelerini getir (Requires Auth)
+  // Get user's quiz attempts (Requires Auth)
   async getMyQuizAttempts(page = 1, pageSize = 10) {
     try {
       const response = await apiClient.get(API_ENDPOINTS.MY_QUIZ_ATTEMPTS, {
@@ -55,22 +55,22 @@ class QuizService {
     }
   }
 
-  // Hata yönetimi
+  // Error handling
   handleError(error) {
     if (error.response) {
       return {
-        message: error.response.data.message || 'Bir hata oluştu',
+        message: error.response.data.message || 'An error occurred',
         status: error.response.status,
         data: error.response.data,
       };
     } else if (error.request) {
       return {
-        message: 'Sunucuya bağlanılamadı',
+        message: 'Could not connect to server',
         status: 0,
       };
     } else {
       return {
-        message: error.message || 'Bilinmeyen bir hata oluştu',
+        message: error.message || 'An unknown error occurred',
         status: -1,
       };
     }

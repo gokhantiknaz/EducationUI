@@ -78,7 +78,7 @@ const SocialLoginButtons = ({ onSuccess, onError }) => {
       handleGoogleSuccess(googleResponse.authentication);
     } else if (googleResponse?.type === 'error') {
       setGoogleLoading(false);
-      showErrorToast('Google ile giriş yapılamadı', 'Hata');
+      showErrorToast('Could not login with Google', 'Error');
       onError?.('Google login failed');
     } else if (googleResponse?.type === 'dismiss') {
       setGoogleLoading(false);
@@ -91,7 +91,7 @@ const SocialLoginButtons = ({ onSuccess, onError }) => {
       handleLinkedInSuccess(linkedInResponse.params);
     } else if (linkedInResponse?.type === 'error') {
       setLinkedInLoading(false);
-      showErrorToast('LinkedIn ile giriş yapılamadı', 'Hata');
+      showErrorToast('Could not login with LinkedIn', 'Error');
       onError?.('LinkedIn login failed');
     } else if (linkedInResponse?.type === 'dismiss') {
       setLinkedInLoading(false);
@@ -120,11 +120,11 @@ const SocialLoginButtons = ({ onSuccess, onError }) => {
         sub: userInfo.sub,
       });
 
-      showSuccessToast('Google ile giriş başarılı!', 'Başarılı');
+      showSuccessToast('Google login successful!', 'Success');
       onSuccess?.();
     } catch (error) {
       console.error('Google login error:', error);
-      showErrorToast(error.message || 'Google ile giriş yapılamadı', 'Hata');
+      showErrorToast(error.message || 'Could not login with Google', 'Error');
       onError?.(error);
     } finally {
       setGoogleLoading(false);
@@ -150,7 +150,7 @@ const SocialLoginButtons = ({ onSuccess, onError }) => {
       const tokenData = await tokenResponse.json();
 
       if (!tokenData.access_token) {
-        throw new Error('LinkedIn token alınamadı');
+        throw new Error('Could not get LinkedIn token');
       }
 
       // Get user info from LinkedIn
@@ -173,11 +173,11 @@ const SocialLoginButtons = ({ onSuccess, onError }) => {
         sub: userInfo.sub,
       });
 
-      showSuccessToast('LinkedIn ile giriş başarılı!', 'Başarılı');
+      showSuccessToast('LinkedIn login successful!', 'Success');
       onSuccess?.();
     } catch (error) {
       console.error('LinkedIn login error:', error);
-      showErrorToast(error.message || 'LinkedIn ile giriş yapılamadı', 'Hata');
+      showErrorToast(error.message || 'Could not login with LinkedIn', 'Error');
       onError?.(error);
     } finally {
       setLinkedInLoading(false);
@@ -186,7 +186,7 @@ const SocialLoginButtons = ({ onSuccess, onError }) => {
 
   const handleGoogleLogin = async () => {
     if (!getGoogleClientId()) {
-      showErrorToast('Google Client ID yapılandırılmamış', 'Yapılandırma Hatası');
+      showErrorToast('Google Client ID not configured', 'Configuration Error');
       return;
     }
     setGoogleLoading(true);
@@ -195,7 +195,7 @@ const SocialLoginButtons = ({ onSuccess, onError }) => {
 
   const handleLinkedInLogin = async () => {
     if (!OAUTH_CONFIG.LINKEDIN_CLIENT_ID) {
-      showErrorToast('LinkedIn Client ID yapılandırılmamış', 'Yapılandırma Hatası');
+      showErrorToast('LinkedIn Client ID not configured', 'Configuration Error');
       return;
     }
     setLinkedInLoading(true);
@@ -219,7 +219,7 @@ const SocialLoginButtons = ({ onSuccess, onError }) => {
             <View style={styles.iconContainer}>
               <Text style={styles.googleIcon}>G</Text>
             </View>
-            <Text style={styles.googleButtonText}>Google ile devam et</Text>
+            <Text style={styles.googleButtonText}>Continue with Google</Text>
           </>
         )}
       </TouchableOpacity>
@@ -237,7 +237,7 @@ const SocialLoginButtons = ({ onSuccess, onError }) => {
             <View style={styles.iconContainer}>
               <Text style={styles.linkedInIcon}>in</Text>
             </View>
-            <Text style={styles.linkedInButtonText}>LinkedIn ile devam et</Text>
+            <Text style={styles.linkedInButtonText}>Continue with LinkedIn</Text>
           </>
         )}
       </TouchableOpacity>

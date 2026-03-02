@@ -13,6 +13,7 @@ import { COLORS, SIZES, SHADOWS } from '../constants/theme';
 import useAuthStore from '../store/authStore';
 import useAppConfigStore from '../store/appConfigStore';
 import useCourseStore from '../store/courseStore';
+import useNotificationStore from '../store/notificationStore';
 import Loading from '../components/Loading';
 
 const CourseDashboardScreen = ({ navigation, route }) => {
@@ -20,6 +21,7 @@ const CourseDashboardScreen = ({ navigation, route }) => {
   const { user, logout } = useAuthStore();
   const { config } = useAppConfigStore();
   const { fetchCourseDetail, currentCourse, isLoading } = useCourseStore();
+  const { unreadCount, fetchNotifications } = useNotificationStore();
   const [refreshing, setRefreshing] = useState(false);
   const [enrollment, setEnrollment] = useState(null);
 
@@ -32,6 +34,7 @@ const CourseDashboardScreen = ({ navigation, route }) => {
   const loadCourseData = async () => {
     try {
       await fetchCourseDetail(courseId);
+      await fetchNotifications(1, 20);
     } catch (error) {
       console.error('Failed to load course:', error);
     }
@@ -93,11 +96,29 @@ const CourseDashboardScreen = ({ navigation, route }) => {
               </Text>
             </View>
           </View>
-          <TouchableOpacity style={styles.avatarContainer} onPress={handleLogout}>
-            <Text style={styles.avatarText}>
-              {user?.firstName?.charAt(0)}{user?.lastName?.charAt(0)}
-            </Text>
-          </TouchableOpacity>
+          <View style={styles.headerRight}>
+            {/* Notification Bell */}
+            <TouchableOpacity
+              style={styles.notificationButton}
+              onPress={() => navigation.navigate('Notifications')}
+            >
+              <Text style={styles.notificationIcon}>🔔</Text>
+              {unreadCount > 0 && (
+                <View style={styles.notificationBadge}>
+                  <Text style={styles.notificationBadgeText}>
+                    {unreadCount > 99 ? '99+' : unreadCount}
+                  </Text>
+                </View>
+              )}
+            </TouchableOpacity>
+
+            {/* Avatar */}
+            <TouchableOpacity style={styles.avatarContainer} onPress={handleLogout}>
+              <Text style={styles.avatarText}>
+                {user?.firstName?.charAt(0)}{user?.lastName?.charAt(0)}
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Course Card */}
@@ -210,6 +231,42 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
+  },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SIZES.paddingSmall,
+  },
+  notificationButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: COLORS.backgroundDark,
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+  },
+  notificationIcon: {
+    fontSize: 20,
+  },
+  notificationBadge: {
+    position: 'absolute',
+    top: -2,
+    right: -2,
+    backgroundColor: COLORS.error,
+    borderRadius: 10,
+    minWidth: 18,
+    height: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 4,
+    borderWidth: 2,
+    borderColor: COLORS.background,
+  },
+  notificationBadgeText: {
+    fontSize: 10,
+    color: COLORS.background,
+    fontWeight: 'bold',
   },
   appLogo: {
     width: 40,

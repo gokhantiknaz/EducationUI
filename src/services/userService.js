@@ -2,7 +2,7 @@ import apiClient from './api';
 import { API_ENDPOINTS } from '../constants/config';
 
 class UserService {
-  // Kullanıcı profil bilgilerini getir
+  // Get user profile
   async getProfile() {
     try {
       const response = await apiClient.get(API_ENDPOINTS.USER_PROFILE);
@@ -12,7 +12,7 @@ class UserService {
     }
   }
 
-  // Detaylı profil bilgilerini getir (istatistiklerle)
+  // Get detailed profile (with statistics)
   async getFullProfile() {
     try {
       const response = await apiClient.get(API_ENDPOINTS.USER_FULL_PROFILE);
@@ -22,7 +22,7 @@ class UserService {
     }
   }
 
-  // Profil güncelle
+  // Update profile
   async updateProfile(profileData) {
     try {
       const response = await apiClient.put(API_ENDPOINTS.UPDATE_PROFILE, profileData);
@@ -32,12 +32,12 @@ class UserService {
     }
   }
 
-  // Avatar yükle
+  // Upload avatar
   async uploadAvatar(imageUri) {
     try {
       const formData = new FormData();
 
-      // URI'den dosya bilgilerini çıkar
+      // Extract file info from URI
       const filename = imageUri.split('/').pop();
       const match = /\.(\w+)$/.exec(filename);
       const type = match ? `image/${match[1]}` : 'image/jpeg';
@@ -60,7 +60,7 @@ class UserService {
     }
   }
 
-  // Şifre değiştir
+  // Change password
   async changePassword(currentPassword, newPassword) {
     try {
       const response = await apiClient.put(API_ENDPOINTS.CHANGE_PASSWORD, {
@@ -73,7 +73,7 @@ class UserService {
     }
   }
 
-  // Meslek listesini getir
+  // Get professions list
   async getProfessions() {
     try {
       const response = await apiClient.get(API_ENDPOINTS.PROFESSIONS);
@@ -83,7 +83,7 @@ class UserService {
     }
   }
 
-  // İlgi alanları (hashtag) listesini getir
+  // Get interest tags list
   async getInterestTags() {
     try {
       const response = await apiClient.get(API_ENDPOINTS.INTEREST_TAGS);
@@ -93,22 +93,22 @@ class UserService {
     }
   }
 
-  // Hata yönetimi
+  // Error handling
   handleError(error) {
     if (error.response) {
       return {
-        message: error.response.data.message || 'Bir hata oluştu',
+        message: error.response.data.message || 'An error occurred',
         status: error.response.status,
         data: error.response.data,
       };
     } else if (error.request) {
       return {
-        message: 'Sunucuya bağlanılamadı',
+        message: 'Could not connect to server',
         status: 0,
       };
     } else {
       return {
-        message: error.message || 'Bilinmeyen bir hata oluştu',
+        message: error.message || 'An unknown error occurred',
         status: -1,
       };
     }

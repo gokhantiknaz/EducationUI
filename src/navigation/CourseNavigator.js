@@ -11,6 +11,7 @@ import QuizListScreen from '../screens/QuizListScreen';
 import QuizScreen from '../screens/QuizScreen';
 import QuizResultScreen from '../screens/QuizResultScreen';
 import DocumentViewerScreen from '../screens/DocumentViewerScreen';
+import NotificationsScreen from '../screens/NotificationsScreen';
 import { COLORS } from '../constants/theme';
 
 const Stack = createStackNavigator();
@@ -83,6 +84,10 @@ const CourseNavigator = ({ initialCourseId }) => {
         name="SingleCourseTabs"
         component={SingleCourseTabNavigator}
         initialParams={{ courseId: initialCourseId }}
+      />
+      <Stack.Screen
+        name="Notifications"
+        component={NotificationsScreen}
       />
       <Stack.Screen
         name="VideoPlayer"

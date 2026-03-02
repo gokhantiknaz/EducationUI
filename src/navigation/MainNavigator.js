@@ -14,6 +14,7 @@ import QuizListScreen from '../screens/QuizListScreen';
 import QuizScreen from '../screens/QuizScreen';
 import QuizResultScreen from '../screens/QuizResultScreen';
 import PurchaseScreen from '../screens/PurchaseScreen';
+import NotificationsScreen from '../screens/NotificationsScreen';
 import {COLORS} from '../constants/theme';
 
 const Stack = createStackNavigator();
@@ -97,6 +98,7 @@ const MainNavigator = () => {
             }}
             id={"main"}>
             <Stack.Screen name="MainTabs" component={TabNavigator}/>
+            <Stack.Screen name="Notifications" component={NotificationsScreen}/>
             <Stack.Screen name="CourseDetail" component={CourseDetailScreen}/>
             <Stack.Screen name="Purchase" component={PurchaseScreen}/>
             <Stack.Screen

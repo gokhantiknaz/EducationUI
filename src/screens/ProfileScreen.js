@@ -69,8 +69,8 @@ const ProfileScreen = ({ navigation }) => {
       setSelectedInterests(data?.interests || []);
     } catch (err) {
       console.error('Profile load error:', err);
-      setError(err?.message || 'Profil yuklenemedi');
-      // Hata olsa bile user bilgisini authStore'dan al
+      setError(err?.message || 'Failed to load profile');
+      // Get user info from authStore even if there's an error
       if (user) {
         setProfile({
           firstName: user.firstName,
@@ -102,17 +102,17 @@ const ProfileScreen = ({ navigation }) => {
         userService.getInterestTags().catch(() => null),
       ]);
 
-      // Fallback listeler
+      // Fallback lists
       const defaultProfessions = [
-        { id: '1', name: 'Software Developer', nameTr: 'Yazilim Gelistirici', category: 'Development' },
-        { id: '2', name: 'Frontend Developer', nameTr: 'Frontend Gelistirici', category: 'Development' },
-        { id: '3', name: 'Backend Developer', nameTr: 'Backend Gelistirici', category: 'Development' },
-        { id: '4', name: 'Full Stack Developer', nameTr: 'Full Stack Gelistirici', category: 'Development' },
-        { id: '5', name: 'DevOps Engineer', nameTr: 'DevOps Muhendisi', category: 'DevOps & Cloud' },
-        { id: '6', name: 'Cybersecurity Analyst', nameTr: 'Siber Guvenlik Analisti', category: 'Security' },
-        { id: '7', name: 'Data Scientist', nameTr: 'Veri Bilimci', category: 'Data & AI' },
-        { id: '8', name: 'Mobile Developer', nameTr: 'Mobil Gelistirici', category: 'Development' },
-        { id: '9', name: 'Student', nameTr: 'Ogrenci', category: 'Other' },
+        { id: '1', name: 'Software Developer', category: 'Development' },
+        { id: '2', name: 'Frontend Developer', category: 'Development' },
+        { id: '3', name: 'Backend Developer', category: 'Development' },
+        { id: '4', name: 'Full Stack Developer', category: 'Development' },
+        { id: '5', name: 'DevOps Engineer', category: 'DevOps & Cloud' },
+        { id: '6', name: 'Cybersecurity Analyst', category: 'Security' },
+        { id: '7', name: 'Data Scientist', category: 'Data & AI' },
+        { id: '8', name: 'Mobile Developer', category: 'Development' },
+        { id: '9', name: 'Student', category: 'Other' },
       ];
 
       const defaultTags = [
@@ -127,11 +127,11 @@ const ProfileScreen = ({ navigation }) => {
     }
   };
 
-  // Meslekleri kategoriye gore grupla
+  // Group professions by category
   const groupedProfessions = React.useMemo(() => {
     const groups = {};
     professions.forEach(prof => {
-      const category = prof.category || 'Diger';
+      const category = prof.category || 'Other';
       if (!groups[category]) {
         groups[category] = [];
       }
@@ -140,11 +140,11 @@ const ProfileScreen = ({ navigation }) => {
     return groups;
   }, [professions]);
 
-  // Secili meslegin goruntuleme adi
+  // Get display name for selected profession
   const getDisplayProfession = () => {
     if (!editData.profession) return '';
     const found = professions.find(p => p.name === editData.profession);
-    return found?.nameTr || found?.name || editData.profession;
+    return found?.name || editData.profession;
   };
 
   const handlePickImage = async () => {
@@ -152,7 +152,7 @@ const ProfileScreen = ({ navigation }) => {
       const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
 
       if (!permissionResult.granted) {
-        showErrorToast('Galeri erişim izni gerekli');
+        showErrorToast('Gallery access permission required');
         return;
       }
 
@@ -168,7 +168,7 @@ const ProfileScreen = ({ navigation }) => {
       }
     } catch (err) {
       console.error('Image pick error:', err);
-      showErrorToast('Resim seçilemedi');
+      showErrorToast('Could not select image');
     }
   };
 
@@ -177,10 +177,10 @@ const ProfileScreen = ({ navigation }) => {
       setIsUploading(true);
       const response = await userService.uploadAvatar(uri);
       setProfile(prev => ({ ...prev, profileImageUrl: response.profileImageUrl }));
-      showSuccessToast('Profil fotoğrafı güncellendi');
+      showSuccessToast('Profile photo updated');
     } catch (err) {
       console.error('Upload error:', err);
-      showErrorToast('Fotoğraf yüklenemedi');
+      showErrorToast('Could not upload photo');
     } finally {
       setIsUploading(false);
     }
@@ -196,10 +196,10 @@ const ProfileScreen = ({ navigation }) => {
       const updated = await userService.updateProfile(updateData);
       setProfile(prev => ({ ...prev, ...updated }));
       setIsEditing(false);
-      showSuccessToast('Profil güncellendi');
+      showSuccessToast('Profile updated');
     } catch (err) {
       console.error('Save error:', err);
-      showErrorToast('Profil güncellenemedi');
+      showErrorToast('Could not update profile');
     } finally {
       setIsSaving(false);
     }
@@ -211,7 +211,7 @@ const ProfileScreen = ({ navigation }) => {
         return prev.filter(t => t !== tag);
       }
       if (prev.length >= 10) {
-        showErrorToast('En fazla 10 ilgi alanı seçebilirsiniz');
+        showErrorToast('You can select up to 10 interests');
         return prev;
       }
       return [...prev, tag];
@@ -233,7 +233,7 @@ const ProfileScreen = ({ navigation }) => {
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={COLORS.primary} />
-          <Text style={{ marginTop: 10, color: COLORS.textLight }}>Profil yukleniyor...</Text>
+          <Text style={{ marginTop: 10, color: COLORS.textLight }}>Loading profile...</Text>
         </View>
       </SafeAreaView>
     );
@@ -248,7 +248,7 @@ const ProfileScreen = ({ navigation }) => {
             style={{ backgroundColor: COLORS.primary, paddingHorizontal: 20, paddingVertical: 10, borderRadius: 8 }}
             onPress={loadProfile}
           >
-            <Text style={{ color: '#fff', fontWeight: '600' }}>Tekrar Dene</Text>
+            <Text style={{ color: '#fff', fontWeight: '600' }}>Try Again</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -265,21 +265,21 @@ const ProfileScreen = ({ navigation }) => {
       >
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>Profilim</Text>
+          <Text style={styles.headerTitle}>My Profile</Text>
           {!isEditing ? (
             <TouchableOpacity style={styles.editButton} onPress={() => setIsEditing(true)}>
-              <Text style={styles.editButtonText}>Duzenle</Text>
+              <Text style={styles.editButtonText}>Edit</Text>
             </TouchableOpacity>
           ) : (
             <View style={styles.headerButtons}>
               <TouchableOpacity style={styles.cancelButton} onPress={() => setIsEditing(false)}>
-                <Text style={styles.cancelButtonText}>Vazgec</Text>
+                <Text style={styles.cancelButtonText}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.saveButton} onPress={handleSave} disabled={isSaving}>
                 {isSaving ? (
                   <ActivityIndicator size="small" color="#fff" />
                 ) : (
-                  <Text style={styles.saveButtonText}>Kaydet</Text>
+                  <Text style={styles.saveButtonText}>Save</Text>
                 )}
               </TouchableOpacity>
             </View>
@@ -306,103 +306,103 @@ const ProfileScreen = ({ navigation }) => {
               <Text style={styles.avatarBadgeText}>+</Text>
             </View>
           </TouchableOpacity>
-          <Text style={styles.avatarHint}>Degistirmek icin dokunun</Text>
+          <Text style={styles.avatarHint}>Tap to change</Text>
         </View>
 
         {/* Stats */}
         <View style={styles.statsContainer}>
           <View style={styles.statItem}>
             <Text style={styles.statValue}>{profile?.enrolledCoursesCount || 0}</Text>
-            <Text style={styles.statLabel}>Kayitli Kurs</Text>
+            <Text style={styles.statLabel}>Enrolled</Text>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.statItem}>
             <Text style={styles.statValue}>{profile?.completedCoursesCount || 0}</Text>
-            <Text style={styles.statLabel}>Tamamlanan</Text>
+            <Text style={styles.statLabel}>Completed</Text>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.statItem}>
             <Text style={styles.statValue}>{profile?.certificatesCount || 0}</Text>
-            <Text style={styles.statLabel}>Sertifika</Text>
+            <Text style={styles.statLabel}>Certificates</Text>
           </View>
         </View>
 
         {/* Profile Form */}
         <View style={styles.formSection}>
-          <Text style={styles.sectionTitle}>Kisisel Bilgiler</Text>
+          <Text style={styles.sectionTitle}>Personal Information</Text>
 
           <View style={styles.inputRow}>
             <View style={styles.inputHalf}>
-              <Text style={styles.inputLabel}>Ad</Text>
+              <Text style={styles.inputLabel}>First Name</Text>
               <TextInput
                 style={[styles.input, !isEditing && styles.inputDisabled]}
                 value={editData.firstName}
                 onChangeText={(text) => setEditData(prev => ({ ...prev, firstName: text }))}
                 editable={isEditing}
-                placeholder="Adiniz"
+                placeholder="Your first name"
               />
             </View>
             <View style={styles.inputHalf}>
-              <Text style={styles.inputLabel}>Soyad</Text>
+              <Text style={styles.inputLabel}>Last Name</Text>
               <TextInput
                 style={[styles.input, !isEditing && styles.inputDisabled]}
                 value={editData.lastName}
                 onChangeText={(text) => setEditData(prev => ({ ...prev, lastName: text }))}
                 editable={isEditing}
-                placeholder="Soyadiniz"
+                placeholder="Your last name"
               />
             </View>
           </View>
 
-          <Text style={styles.inputLabel}>Hakkimda</Text>
+          <Text style={styles.inputLabel}>About Me</Text>
           <TextInput
             style={[styles.input, styles.textArea, !isEditing && styles.inputDisabled]}
             value={editData.bio}
             onChangeText={(text) => setEditData(prev => ({ ...prev, bio: text }))}
             editable={isEditing}
-            placeholder="Kendinizi kisaca tanitin..."
+            placeholder="Tell us about yourself..."
             multiline
             numberOfLines={3}
           />
 
-          <Text style={styles.inputLabel}>Meslek</Text>
+          <Text style={styles.inputLabel}>Profession</Text>
           <TouchableOpacity
             style={[styles.input, styles.selectInput, !isEditing && styles.inputDisabled]}
             onPress={() => isEditing && setShowProfessionModal(true)}
             disabled={!isEditing}
           >
             <Text style={editData.profession ? styles.selectText : styles.selectPlaceholder}>
-              {getDisplayProfession() || 'Meslek seciniz'}
+              {getDisplayProfession() || 'Select profession'}
             </Text>
             <Text style={styles.selectArrow}>v</Text>
           </TouchableOpacity>
 
-          <Text style={styles.inputLabel}>Sirket</Text>
+          <Text style={styles.inputLabel}>Company</Text>
           <TextInput
             style={[styles.input, !isEditing && styles.inputDisabled]}
             value={editData.company}
             onChangeText={(text) => setEditData(prev => ({ ...prev, company: text }))}
             editable={isEditing}
-            placeholder="Calistiginiz sirket"
+            placeholder="Your company"
           />
 
-          <Text style={styles.inputLabel}>Konum</Text>
+          <Text style={styles.inputLabel}>Location</Text>
           <TextInput
             style={[styles.input, !isEditing && styles.inputDisabled]}
             value={editData.location}
             onChangeText={(text) => setEditData(prev => ({ ...prev, location: text }))}
             editable={isEditing}
-            placeholder="Istanbul, Turkiye"
+            placeholder="City, Country"
           />
         </View>
 
         {/* Interests Section */}
         <View style={styles.formSection}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Ilgi Alanlari</Text>
+            <Text style={styles.sectionTitle}>Interests</Text>
             {isEditing && (
               <TouchableOpacity onPress={() => setShowInterestsModal(true)}>
-                <Text style={styles.addButton}>+ Ekle</Text>
+                <Text style={styles.addButton}>+ Add</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -420,14 +420,14 @@ const ProfileScreen = ({ navigation }) => {
                 </View>
               ))
             ) : (
-              <Text style={styles.noTagsText}>Henuz ilgi alani eklenmemis</Text>
+              <Text style={styles.noTagsText}>No interests added yet</Text>
             )}
           </View>
         </View>
 
         {/* Social Links */}
         <View style={styles.formSection}>
-          <Text style={styles.sectionTitle}>Sosyal Baglantilar</Text>
+          <Text style={styles.sectionTitle}>Social Links</Text>
 
           <Text style={styles.inputLabel}>LinkedIn</Text>
           <TextInput
@@ -435,7 +435,7 @@ const ProfileScreen = ({ navigation }) => {
             value={editData.linkedInUrl}
             onChangeText={(text) => setEditData(prev => ({ ...prev, linkedInUrl: text }))}
             editable={isEditing}
-            placeholder="https://linkedin.com/in/kullanici"
+            placeholder="https://linkedin.com/in/username"
             autoCapitalize="none"
           />
 
@@ -445,7 +445,7 @@ const ProfileScreen = ({ navigation }) => {
             value={editData.gitHubUrl}
             onChangeText={(text) => setEditData(prev => ({ ...prev, gitHubUrl: text }))}
             editable={isEditing}
-            placeholder="https://github.com/kullanici"
+            placeholder="https://github.com/username"
             autoCapitalize="none"
           />
 
@@ -462,7 +462,7 @@ const ProfileScreen = ({ navigation }) => {
 
         {/* Logout Button */}
         <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-          <Text style={styles.logoutButtonText}>Cikis Yap</Text>
+          <Text style={styles.logoutButtonText}>Logout</Text>
         </TouchableOpacity>
 
         <View style={styles.bottomPadding} />
@@ -473,7 +473,7 @@ const ProfileScreen = ({ navigation }) => {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Meslek Seciniz</Text>
+              <Text style={styles.modalTitle}>Select Profession</Text>
               <TouchableOpacity onPress={() => setShowProfessionModal(false)}>
                 <Text style={styles.modalClose}>X</Text>
               </TouchableOpacity>
@@ -498,11 +498,8 @@ const ProfileScreen = ({ navigation }) => {
                         styles.modalItemText,
                         editData.profession === prof.name && styles.modalItemTextSelected,
                       ]}>
-                        {prof.nameTr || prof.name}
+                        {prof.name}
                       </Text>
-                      {prof.nameTr && (
-                        <Text style={styles.modalItemSubtext}>{prof.name}</Text>
-                      )}
                     </TouchableOpacity>
                   ))}
                 </View>
@@ -517,7 +514,7 @@ const ProfileScreen = ({ navigation }) => {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Ilgi Alanlari ({selectedInterests.length}/10)</Text>
+              <Text style={styles.modalTitle}>Interests ({selectedInterests.length}/10)</Text>
               <TouchableOpacity onPress={() => setShowInterestsModal(false)}>
                 <Text style={styles.modalClose}>X</Text>
               </TouchableOpacity>
@@ -547,7 +544,7 @@ const ProfileScreen = ({ navigation }) => {
               style={styles.modalDoneButton}
               onPress={() => setShowInterestsModal(false)}
             >
-              <Text style={styles.modalDoneButtonText}>Tamam</Text>
+              <Text style={styles.modalDoneButtonText}>Done</Text>
             </TouchableOpacity>
           </View>
         </View>

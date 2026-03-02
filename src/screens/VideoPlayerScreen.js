@@ -24,7 +24,7 @@ import courseService from '../services/courseService';
 import { showSuccessToast, showErrorToast, showInfoToast } from '../utils/toast';
 
 const DEFAULT_VIDEO_URL = 'https://d3dcmqyicbxyjj.cloudfront.net/raw/sample-20s.mp4';
-const PROGRESS_SAVE_INTERVAL = 10000; // 10 saniyede bir kaydet
+const PROGRESS_SAVE_INTERVAL = 10000; // Save every 10 seconds
 
 const getValidVideoUrl = (url) => {
     if (!url) return DEFAULT_VIDEO_URL;
@@ -296,7 +296,7 @@ const VideoPlayerScreen = ({ navigation, route }) => {
             setIsLoading(true);
         } else if (status === 'error') {
             setIsLoading(false);
-            showErrorToast('Video yüklenemedi', 'Hata');
+            showErrorToast('Could not load video', 'Error');
         }
     }, [status, isPlaying, currentLesson?.durationSeconds]);
 
@@ -341,7 +341,7 @@ const VideoPlayerScreen = ({ navigation, route }) => {
 
                 setHasResumed(true);
                 setCurrentTime(resumePosition);
-                showInfoToast(`${Math.floor(resumePosition)}. saniyeden devam ediliyor`, 'Devam');
+                showInfoToast(`Resuming from ${Math.floor(resumePosition)} seconds`, 'Resume');
             } catch (e) {
                 console.log('Resume seek error:', e?.message || e);
                 // iOS'ta alternatif seek yöntemi dene
@@ -417,12 +417,12 @@ const VideoPlayerScreen = ({ navigation, route }) => {
 
         try {
             await markLessonComplete(currentLesson.id);
-            showSuccessToast('Ders tamamlandı!', 'Tebrikler');
+            showSuccessToast('Lesson completed!', 'Congratulations');
 
             if (currentLessonIndex < lessons.length - 1) {
                 setTimeout(() => goToNextLesson(), 2000);
             } else {
-                showSuccessToast('Tüm dersler tamamlandı!', 'Kurs Bitti');
+                showSuccessToast('All lessons completed!', 'Course Finished');
             }
         } catch (err) {
             console.error('Lesson completion error:', err);
@@ -631,10 +631,10 @@ const VideoPlayerScreen = ({ navigation, route }) => {
                     </TouchableOpacity>
                     <View style={styles.headerTitleContainer}>
                         <Text style={styles.headerTitle} numberOfLines={1}>
-                            {courseName || 'Kurs'}
+                            {courseName || 'Course'}
                         </Text>
                         <Text style={styles.headerSubtitle} numberOfLines={1}>
-                            {currentLesson?.title || 'Ders'}
+                            {currentLesson?.title || 'Lesson'}
                         </Text>
                     </View>
                 </View>
@@ -715,7 +715,7 @@ const VideoPlayerScreen = ({ navigation, route }) => {
                 {status === 'error' && (
                     <View style={styles.videoErrorOverlay}>
                         <Text style={styles.errorIcon}>⚠️</Text>
-                        <Text style={styles.errorText}>Video yüklenemedi</Text>
+                        <Text style={styles.errorText}>Could not load video</Text>
                     </View>
                 )}
             </View>
@@ -732,7 +732,7 @@ const VideoPlayerScreen = ({ navigation, route }) => {
                         >
                             <Text style={styles.lessonNavIcon}>◀</Text>
                             <Text style={[styles.lessonNavText, currentLessonIndex === 0 && styles.lessonNavTextDisabled]}>
-                                Önceki Ders
+                                Previous
                             </Text>
                         </TouchableOpacity>
 
@@ -748,7 +748,7 @@ const VideoPlayerScreen = ({ navigation, route }) => {
                             disabled={currentLessonIndex === lessons.length - 1}
                         >
                             <Text style={[styles.lessonNavText, currentLessonIndex === lessons.length - 1 && styles.lessonNavTextDisabled]}>
-                                Sonraki Ders
+                                Next
                             </Text>
                             <Text style={styles.lessonNavIcon}>▶</Text>
                         </TouchableOpacity>
@@ -758,10 +758,10 @@ const VideoPlayerScreen = ({ navigation, route }) => {
                     <ScrollView style={styles.contentContainer} showsVerticalScrollIndicator={false}>
                         <View style={styles.lessonInfoCard}>
                             <View style={styles.lessonTitleRow}>
-                                <Text style={styles.lessonTitle}>{currentLesson?.title || 'Ders Başlığı'}</Text>
+                                <Text style={styles.lessonTitle}>{currentLesson?.title || 'Lesson Title'}</Text>
                                 {currentLesson?.isFree && (
                                     <View style={styles.freeBadge}>
-                                        <Text style={styles.freeBadgeText}>Ücretsiz</Text>
+                                        <Text style={styles.freeBadgeText}>Free</Text>
                                     </View>
                                 )}
                             </View>
@@ -785,7 +785,7 @@ const VideoPlayerScreen = ({ navigation, route }) => {
                                     <Ionicons name="document-text" size={20} color="#E74C3C" />
                                     <View style={styles.documentButtonText}>
                                         <Text style={styles.documentButtonTitle}>
-                                            {currentLesson.documentName || 'Ders Belgesi'}
+                                            {currentLesson.documentName || 'Lesson Document'}
                                         </Text>
                                         <Text style={styles.documentButtonSubtitle}>
                                             {currentLesson.documentType?.toUpperCase() || 'PDF'} - Görüntüle
@@ -798,7 +798,7 @@ const VideoPlayerScreen = ({ navigation, route }) => {
 
                         {lessons.length > 0 && (
                             <View style={styles.lessonListContainer}>
-                                <Text style={styles.sectionTitle}>Ders Listesi</Text>
+                                <Text style={styles.sectionTitle}>Lesson List</Text>
                                 {(() => {
                                     // Dersleri section'lara göre grupla
                                     const sections = [];
@@ -807,7 +807,7 @@ const VideoPlayerScreen = ({ navigation, route }) => {
                                     lessons.forEach((lessonItem, index) => {
                                         if (!currentSection || currentSection.title !== lessonItem.sectionTitle) {
                                             currentSection = {
-                                                title: lessonItem.sectionTitle || 'Bölüm',
+                                                title: lessonItem.sectionTitle || 'Section',
                                                 sectionIndex: lessonItem.sectionIndex,
                                                 lessons: [],
                                                 totalDuration: 0,
@@ -818,7 +818,7 @@ const VideoPlayerScreen = ({ navigation, route }) => {
                                         currentSection.totalDuration += lessonItem.durationSeconds || 0;
                                     });
 
-                                    // Süreyi formatla
+                                    // Format duration
                                     const formatSectionDuration = (seconds) => {
                                         if (!seconds) return '';
                                         const mins = Math.floor(seconds / 60);
@@ -826,9 +826,9 @@ const VideoPlayerScreen = ({ navigation, route }) => {
                                         if (mins >= 60) {
                                             const hours = Math.floor(mins / 60);
                                             const remainingMins = mins % 60;
-                                            return `${hours}s ${remainingMins}dk`;
+                                            return `${hours}h ${remainingMins}m`;
                                         }
-                                        return secs > 0 ? `${mins}dk ${secs}sn` : `${mins}dk`;
+                                        return secs > 0 ? `${mins}m ${secs}s` : `${mins}m`;
                                     };
 
                                     return sections.map((section, sectionIdx) => (
@@ -836,7 +836,7 @@ const VideoPlayerScreen = ({ navigation, route }) => {
                                             <View style={styles.sectionHeader}>
                                                 <Text style={styles.sectionHeaderTitle}>{section.title}</Text>
                                                 <Text style={styles.sectionHeaderDuration}>
-                                                    {section.lessons.length} ders • {formatSectionDuration(section.totalDuration)}
+                                                    {section.lessons.length} lessons • {formatSectionDuration(section.totalDuration)}
                                                 </Text>
                                             </View>
                                             {section.lessons.map((lessonItem, lessonIdx) => {
@@ -919,7 +919,7 @@ const VideoPlayerScreen = ({ navigation, route }) => {
                     onPress={() => setSettingsOpen(false)}
                 >
                     <View style={styles.modalSheet} onStartShouldSetResponder={() => true}>
-                        <Text style={styles.modalTitle}>Oynatma Hızı</Text>
+                        <Text style={styles.modalTitle}>Playback Speed</Text>
                         {[0.5, 0.75, 1, 1.25, 1.5, 2].map((r) => (
                             <TouchableOpacity key={r} style={styles.modalRow} onPress={() => setRate(r)}>
                                 <Text style={styles.modalRowText}>

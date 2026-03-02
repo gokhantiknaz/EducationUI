@@ -70,7 +70,7 @@ const DocumentViewerScreen = ({ navigation, route }) => {
   useEffect(() => {
     const timer = setTimeout(() => {
       markAsComplete();
-    }, 5000); // 5 saniye sonra tamamlandı olarak işaretle
+    }, 5000); // Mark as completed after 5 seconds
 
     return () => clearTimeout(timer);
   }, [currentLesson]);
@@ -188,7 +188,7 @@ const DocumentViewerScreen = ({ navigation, route }) => {
     return `https://docs.google.com/gview?embedded=true&url=${encodeURIComponent(fullUrl)}`;
   };
 
-  const documentType = currentLesson?.documentType?.toUpperCase() || 'BELGE';
+  const documentType = currentLesson?.documentType?.toUpperCase() || 'DOC';
   const documentColor = getDocumentColor(currentLesson?.documentType);
   const documentIcon = getDocumentIcon(currentLesson?.documentType);
 
@@ -229,7 +229,7 @@ const DocumentViewerScreen = ({ navigation, route }) => {
             {currentLesson?.isDocumentUploaded && (
               <View style={styles.uploadedBadge}>
                 <Ionicons name="cloud-done" size={12} color={COLORS.success} />
-                <Text style={styles.uploadedText}>Yüklü</Text>
+                <Text style={styles.uploadedText}>Uploaded</Text>
               </View>
             )}
           </View>
@@ -246,7 +246,7 @@ const DocumentViewerScreen = ({ navigation, route }) => {
             onLoadEnd={() => setIsLoading(false)}
             onError={(e) => {
               setIsLoading(false);
-              setError('Belge yüklenemedi');
+              setError('Could not load document');
             }}
             javaScriptEnabled
             domStorageEnabled
@@ -260,14 +260,14 @@ const DocumentViewerScreen = ({ navigation, route }) => {
         ) : !isLoading ? (
           <View style={styles.noDocument}>
             <Ionicons name="document-text-outline" size={64} color={COLORS.textLight} />
-            <Text style={styles.noDocumentText}>Belge bulunamadı</Text>
+            <Text style={styles.noDocumentText}>Document not found</Text>
           </View>
         ) : null}
 
         {isLoading && (
           <View style={styles.loadingOverlay}>
             <ActivityIndicator size="large" color={COLORS.primary} />
-            <Text style={styles.loadingText}>Belge yükleniyor...</Text>
+            <Text style={styles.loadingText}>Loading document...</Text>
           </View>
         )}
       </View>
@@ -289,7 +289,7 @@ const DocumentViewerScreen = ({ navigation, route }) => {
               styles.navButtonText,
               currentLessonIndex === 0 && styles.navButtonTextDisabled
             ]}>
-              Önceki
+              Previous
             </Text>
           </TouchableOpacity>
 
@@ -306,7 +306,7 @@ const DocumentViewerScreen = ({ navigation, route }) => {
               styles.navButtonText,
               currentLessonIndex === lessons.length - 1 && styles.navButtonTextDisabled
             ]}>
-              Sonraki
+              Next
             </Text>
             <Ionicons
               name="chevron-forward"

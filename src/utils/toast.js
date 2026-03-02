@@ -1,7 +1,7 @@
 import Toast from 'react-native-toast-message';
 
-// Toast gösterme yardımcı fonksiyonları
-export const showSuccessToast = (message, title = 'Başarılı') => {
+// Toast helper functions
+export const showSuccessToast = (message, title = 'Success') => {
   Toast.show({
     type: 'success',
     text1: title,
@@ -12,7 +12,7 @@ export const showSuccessToast = (message, title = 'Başarılı') => {
   });
 };
 
-export const showErrorToast = (message, title = 'Hata') => {
+export const showErrorToast = (message, title = 'Error') => {
   Toast.show({
     type: 'error',
     text1: title,
@@ -23,7 +23,7 @@ export const showErrorToast = (message, title = 'Hata') => {
   });
 };
 
-export const showWarningToast = (message, title = 'Uyarı') => {
+export const showWarningToast = (message, title = 'Warning') => {
   Toast.show({
     type: 'info',
     text1: title,
@@ -34,7 +34,7 @@ export const showWarningToast = (message, title = 'Uyarı') => {
   });
 };
 
-export const showInfoToast = (message, title = 'Bilgi') => {
+export const showInfoToast = (message, title = 'Info') => {
   Toast.show({
     type: 'info',
     text1: title,
@@ -45,18 +45,18 @@ export const showInfoToast = (message, title = 'Bilgi') => {
   });
 };
 
-// API response'larına göre toast göster
+// Show toast based on API response
 export const showApiResponseToast = (response, successMessage) => {
   if (response?.success) {
-    showSuccessToast(successMessage || response.message || 'İşlem başarılı');
+    showSuccessToast(successMessage || response.message || 'Operation successful');
   } else {
-    showErrorToast(response?.message || 'Bir hata oluştu');
+    showErrorToast(response?.message || 'An error occurred');
   }
 };
 
-// Hata mesajlarını parse et ve göster
+// Parse and show error messages
 export const showApiErrorToast = (error) => {
-  let message = 'Bir hata oluştu';
+  let message = 'An error occurred';
 
   if (typeof error === 'string') {
     message = error;

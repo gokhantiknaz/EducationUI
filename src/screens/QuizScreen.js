@@ -85,9 +85,9 @@ const QuizScreen = ({ route, navigation }) => {
         clearInterval(timerRef.current);
       }
       Alert.alert(
-        'Süre Doldu',
-        'Quiz süresi doldu. Cevaplarınız otomatik olarak gönderilecek.',
-        [{ text: 'Tamam', onPress: handleSubmit }]
+        'Time\'s Up',
+        'Quiz time has expired. Your answers will be submitted automatically.',
+        [{ text: 'OK', onPress: handleSubmit }]
       );
     }
   }, [timeRemaining]);
@@ -96,19 +96,19 @@ const QuizScreen = ({ route, navigation }) => {
     try {
       await startQuiz(quizId);
     } catch (err) {
-      Alert.alert('Hata', err.message || 'Quiz başlatılamadı');
+      Alert.alert('Error', err.message || 'Could not start quiz');
     }
   };
 
   const handleBackPress = () => {
     if (currentQuiz) {
       Alert.alert(
-        'Quizden Çık',
-        'Quizden çıkmak istediğinize emin misiniz? İlerlemeniz kaydedilmeyecek.',
+        'Exit Quiz',
+        'Are you sure you want to exit the quiz? Your progress will not be saved.',
         [
-          { text: 'İptal', style: 'cancel' },
+          { text: 'Cancel', style: 'cancel' },
           {
-            text: 'Çık',
+            text: 'Exit',
             style: 'destructive',
             onPress: () => navigation.goBack(),
           },
@@ -121,12 +121,12 @@ const QuizScreen = ({ route, navigation }) => {
 
   const handleAbandon = () => {
     Alert.alert(
-      'Denemeyi İptal Et',
-      'Bu denemeyi iptal edip sıfırdan başlamak istiyor musunuz?',
+      'Cancel Attempt',
+      'Do you want to cancel this attempt and start from scratch?',
       [
-        { text: 'Vazgeç', style: 'cancel' },
+        { text: 'No', style: 'cancel' },
         {
-          text: 'İptal Et',
+          text: 'Yes, Cancel',
           style: 'destructive',
           onPress: async () => {
             await abandonQuiz();
@@ -144,11 +144,11 @@ const QuizScreen = ({ route, navigation }) => {
 
     if (answeredCount < totalQuestions) {
       Alert.alert(
-        'Eksik Cevaplar',
-        `${totalQuestions - answeredCount} soru cevaplanmadı. Yine de göndermek istiyor musunuz?`,
+        'Incomplete Answers',
+        `${totalQuestions - answeredCount} question(s) not answered. Do you still want to submit?`,
         [
-          { text: 'İptal', style: 'cancel' },
-          { text: 'Gönder', onPress: doSubmit },
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Submit', onPress: doSubmit },
         ]
       );
     } else {
@@ -164,7 +164,7 @@ const QuizScreen = ({ route, navigation }) => {
         result,
       });
     } catch (err) {
-      Alert.alert('Hata', err.message || 'Quiz gönderilemedi');
+      Alert.alert('Error', err.message || 'Could not submit quiz');
     }
   };
 
@@ -234,7 +234,7 @@ const QuizScreen = ({ route, navigation }) => {
             style={styles.textInput}
             value={currentAnswer || ''}
             onChangeText={(text) => setTextAnswer(question.id, text)}
-            placeholder="Cevabınızı yazın..."
+            placeholder="Type your answer..."
             placeholderTextColor={COLORS.textLight}
             multiline
             numberOfLines={3}
@@ -287,7 +287,7 @@ const QuizScreen = ({ route, navigation }) => {
                   <Ionicons name="close-circle" size={18} color={COLORS.error} style={styles.blankRemoveIcon} />
                 </View>
               ) : (
-                <Text style={styles.blankZonePlaceholder}>Seçenek seçin</Text>
+                <Text style={styles.blankZonePlaceholder}>Select an option</Text>
               )}
             </TouchableOpacity>
           </View>
@@ -334,7 +334,7 @@ const QuizScreen = ({ route, navigation }) => {
 
         {availableOptions.length > 0 && (
           <View style={styles.optionChipsContainer}>
-            <Text style={styles.optionChipsLabel}>Bir seçenek seçin</Text>
+            <Text style={styles.optionChipsLabel}>Select an option</Text>
             <View style={styles.optionChips}>
               {availableOptions.map((option) => (
                 <TouchableOpacity
@@ -363,13 +363,13 @@ const QuizScreen = ({ route, navigation }) => {
       <View style={styles.questionContainer}>
         <View style={styles.questionHeader}>
           <Text style={styles.questionNumber}>
-            Soru {currentQuestionIndex + 1} / {currentQuiz.questions.length}
+            Question {currentQuestionIndex + 1} / {currentQuiz.questions.length}
           </Text>
           <View style={styles.questionTypeBadge}>
             <Text style={styles.questionTypeText}>
-              {question.questionType === 'SingleChoice' && 'Tek Seçim'}
-              {question.questionType === 'MultipleChoice' && 'Çoktan Seçmeli'}
-              {question.questionType === 'FillInBlank' && 'Boşluk Doldurma'}
+              {question.questionType === 'SingleChoice' && 'Single Choice'}
+              {question.questionType === 'MultipleChoice' && 'Multiple Choice'}
+              {question.questionType === 'FillInBlank' && 'Fill in the Blank'}
             </Text>
           </View>
         </View>
@@ -390,7 +390,7 @@ const QuizScreen = ({ route, navigation }) => {
           : renderOptionQuestion(question)}
 
         <Text style={styles.pointsText}>
-          {question.points} Puan
+          {question.points} Points
         </Text>
       </View>
     );
@@ -403,7 +403,7 @@ const QuizScreen = ({ route, navigation }) => {
       <View style={styles.questionNavOverlay}>
         <View style={styles.questionNavContainer}>
           <View style={styles.questionNavHeader}>
-            <Text style={styles.questionNavTitle}>Sorular</Text>
+            <Text style={styles.questionNavTitle}>Questions</Text>
             <TouchableOpacity onPress={() => setShowQuestionNav(false)}>
               <Ionicons name="close" size={24} color={COLORS.text} />
             </TouchableOpacity>
@@ -441,15 +441,15 @@ const QuizScreen = ({ route, navigation }) => {
           <View style={styles.questionNavLegend}>
             <View style={styles.legendItem}>
               <View style={[styles.legendDot, { backgroundColor: COLORS.success }]} />
-              <Text style={styles.legendText}>Cevaplandı</Text>
+              <Text style={styles.legendText}>Answered</Text>
             </View>
             <View style={styles.legendItem}>
               <View style={[styles.legendDot, { backgroundColor: COLORS.primary }]} />
-              <Text style={styles.legendText}>Aktif</Text>
+              <Text style={styles.legendText}>Current</Text>
             </View>
             <View style={styles.legendItem}>
               <View style={[styles.legendDot, { backgroundColor: COLORS.border }]} />
-              <Text style={styles.legendText}>Cevaplanmadı</Text>
+              <Text style={styles.legendText}>Not Answered</Text>
             </View>
           </View>
         </View>
@@ -462,7 +462,7 @@ const QuizScreen = ({ route, navigation }) => {
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={COLORS.primary} />
-          <Text style={styles.loadingText}>Quiz yükleniyor...</Text>
+          <Text style={styles.loadingText}>Loading quiz...</Text>
         </View>
       </SafeAreaView>
     );
@@ -473,9 +473,9 @@ const QuizScreen = ({ route, navigation }) => {
       <SafeAreaView style={styles.container}>
         <View style={styles.errorContainer}>
           <Ionicons name="alert-circle" size={64} color={COLORS.error} />
-          <Text style={styles.errorTitle}>Hata</Text>
-          <Text style={styles.errorText}>{error || 'Quiz yüklenemedi'}</Text>
-          <Button title="Geri Dön" onPress={() => navigation.goBack()} />
+          <Text style={styles.errorTitle}>Error</Text>
+          <Text style={styles.errorText}>{error || 'Could not load quiz'}</Text>
+          <Button title="Go Back" onPress={() => navigation.goBack()} />
         </View>
       </SafeAreaView>
     );
@@ -532,7 +532,7 @@ const QuizScreen = ({ route, navigation }) => {
           />
         </View>
         <Text style={styles.progressText}>
-          {getAnsweredCount()} / {currentQuiz.questions.length} cevaplandı
+          {getAnsweredCount()} / {currentQuiz.questions.length} answered
         </Text>
       </View>
 
@@ -540,9 +540,9 @@ const QuizScreen = ({ route, navigation }) => {
       {isResumed && (
         <View style={styles.resumedBanner}>
           <Ionicons name="refresh-circle" size={18} color={COLORS.warning} />
-          <Text style={styles.resumedText}>Kaldığınız yerden devam ediyorsunuz</Text>
+          <Text style={styles.resumedText}>Continuing where you left off</Text>
           <TouchableOpacity onPress={handleAbandon} style={styles.abandonButton}>
-            <Text style={styles.abandonText}>İptal</Text>
+            <Text style={styles.abandonText}>Cancel</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -576,14 +576,14 @@ const QuizScreen = ({ route, navigation }) => {
         <View style={styles.navCenter}>
           {currentQuestionIndex === currentQuiz.questions.length - 1 ? (
             <Button
-              title={isSubmitting ? 'Gönderiliyor...' : 'Quizi Bitir'}
+              title={isSubmitting ? 'Submitting...' : 'Finish Quiz'}
               onPress={handleSubmit}
               disabled={isSubmitting}
               style={styles.submitButton}
             />
           ) : (
             <Button
-              title="Sonraki Soru"
+              title="Next Question"
               onPress={nextQuestion}
               style={styles.nextButton}
             />

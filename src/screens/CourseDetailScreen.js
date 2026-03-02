@@ -61,8 +61,8 @@ const CourseDetailScreen = ({ route, navigation }) => {
         setLessonsProgress(progressMap);
       }
     } catch (err) {
-      console.error('Kurs detayı yüklenemedi:', err);
-      setError(err.message || 'Kurs detayları yüklenirken bir hata oluştu');
+      console.error('Course detail load error:', err);
+      setError(err.message || 'An error occurred while loading course details');
     } finally {
       setIsLoading(false);
     }
@@ -94,12 +94,12 @@ const CourseDetailScreen = ({ route, navigation }) => {
             transactionId: `FREE_${Date.now()}`,
             paymentMethod: 'Free',
           });
-          showInfoToast('Kursa başarıyla kaydoldunuz!', 'Başarılı');
+          showInfoToast('Successfully enrolled in the course!', 'Success');
           loadCourseDetail(); // Sayfayı yenile
         }
       } catch (error) {
         console.error('Enrollment error:', error);
-        showInfoToast('Kayıt işlemi başarısız oldu', 'Hata');
+        showInfoToast('Enrollment failed', 'Error');
       }
     }
   };
@@ -133,7 +133,7 @@ const CourseDetailScreen = ({ route, navigation }) => {
     const allLessons = getAllLessons();
 
     if (allLessons.length === 0) {
-      showInfoToast('Bu kursta henüz ders bulunmuyor.', 'Bilgi');
+      showInfoToast('No lessons in this course yet.', 'Info');
       return;
     }
 
@@ -170,7 +170,7 @@ const CourseDetailScreen = ({ route, navigation }) => {
     }
   };
 
-  // Saniyeyi dakika:saniye formatına çevir
+  // Format seconds to min:sec
   const formatDuration = (seconds) => {
     if (!seconds) return null;
     const mins = Math.floor(seconds / 60);
@@ -178,9 +178,9 @@ const CourseDetailScreen = ({ route, navigation }) => {
     if (mins >= 60) {
       const hours = Math.floor(mins / 60);
       const remainingMins = mins % 60;
-      return `${hours}s ${remainingMins}dk`;
+      return `${hours}h ${remainingMins}m`;
     }
-    return secs > 0 ? `${mins}dk ${secs}sn` : `${mins}dk`;
+    return secs > 0 ? `${mins}m ${secs}s` : `${mins}m`;
   };
 
   if (isLoading) {
@@ -265,7 +265,7 @@ const CourseDetailScreen = ({ route, navigation }) => {
               <Text style={styles.statLabel}>Duration</Text>
               <Text style={styles.statValue}>
                 {course.durationMinutes
-                  ? `${Math.floor(course.durationMinutes / 60)}s ${course.durationMinutes % 60}dk`
+                  ? `${Math.floor(course.durationMinutes / 60)}h ${course.durationMinutes % 60}m`
                   : 'N/A'}
               </Text>
             </View>
@@ -374,7 +374,7 @@ const CourseDetailScreen = ({ route, navigation }) => {
                               )}
                               {lesson.isFree && (
                                 <View style={styles.freeBadge}>
-                                  <Text style={styles.freeBadgeText}>Ücretsiz</Text>
+                                  <Text style={styles.freeBadgeText}>Free</Text>
                                 </View>
                               )}
                               {isEnrolled && watchedPercent > 0 && !isCompleted && (
@@ -468,7 +468,7 @@ const CourseDetailScreen = ({ route, navigation }) => {
         {isEnrolled ? (
           <View style={styles.bottomButtonsRow}>
             <Button
-              title="Devam Et"
+              title="Continue"
               onPress={handleContinueLearning}
               variant="primary"
               size="large"
@@ -487,7 +487,7 @@ const CourseDetailScreen = ({ route, navigation }) => {
           </View>
         ) : (
           <Button
-            title={course.price > 0 ? `${course.price} ₺ - Purchase` : 'Free Kaydol'}
+            title={course.price > 0 ? `${course.price} ₺ - Purchase` : 'Enroll Free'}
             onPress={handleEnroll}
             variant="primary"
             size="large"

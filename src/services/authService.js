@@ -4,7 +4,7 @@ import { API_ENDPOINTS, STORAGE_KEYS } from '../constants/config';
 import axios from "axios";
 
 class AuthService {
-  // Kullanıcı kaydı
+  // User registration
   async register(userData) {
     try {
       const response = await apiClient.post(API_ENDPOINTS.REGISTER, userData);
@@ -22,7 +22,7 @@ class AuthService {
     }
   }
 
-  // Sosyal login (Google, LinkedIn)
+  // Social login (Google, LinkedIn)
   async socialLogin(provider, userData) {
     try {
       const payload = {
@@ -50,7 +50,7 @@ class AuthService {
     }
   }
 
-  // Kullanıcı girişi
+  // User login
   async login(email, password) {
     try {
       const response = await apiClient.post(API_ENDPOINTS.LOGIN, {
@@ -74,7 +74,7 @@ class AuthService {
     }
   }
 
-  // Kullanıcı çıkışı
+  // User logout
   async logout() {
     try {
       await AsyncStorage.multiRemove([
@@ -84,12 +84,12 @@ class AuthService {
       ]);
       return true;
     } catch (error) {
-      console.error('Logout hatası:', error);
+      console.error('Logout error:', error);
       throw error;
     }
   }
 
-  // Şifre sıfırlama isteği
+  // Forgot password request
   async forgotPassword(email) {
     try {
       const response = await apiClient.post(API_ENDPOINTS.FORGOT_PASSWORD, {
@@ -101,7 +101,7 @@ class AuthService {
     }
   }
 
-  // Şifre sıfırlama
+  // Reset password
   async resetPassword(token, newPassword) {
     try {
       const response = await apiClient.post(API_ENDPOINTS.RESET_PASSWORD, {
@@ -114,7 +114,7 @@ class AuthService {
     }
   }
 
-  // Kullanıcı bilgilerini al
+  // Get user profile
   async getUserProfile() {
     try {
       const response = await apiClient.get(API_ENDPOINTS.USER_PROFILE);
@@ -124,7 +124,7 @@ class AuthService {
     }
   }
 
-  // Token kontrolü
+  // Token check
   async isAuthenticated() {
     try {
       const token = await AsyncStorage.getItem(STORAGE_KEYS.AUTH_TOKEN);
@@ -134,52 +134,52 @@ class AuthService {
     }
   }
 
-  // Auth verilerini kaydet
+  // Save auth data
   async saveAuthData(data) {
     try {
       const { token, refreshToken, user } = data;
-      
+
       await AsyncStorage.multiSet([
         [STORAGE_KEYS.AUTH_TOKEN, token],
         [STORAGE_KEYS.REFRESH_TOKEN, refreshToken || ''],
         [STORAGE_KEYS.USER_DATA, JSON.stringify(user)],
       ]);
     } catch (error) {
-      console.error('Auth data kaydetme hatası:', error);
+      console.error('Auth data save error:', error);
       throw error;
     }
   }
 
-  // Kayıtlı kullanıcı verisini al
+  // Get stored user data
   async getStoredUserData() {
     try {
       const userData = await AsyncStorage.getItem(STORAGE_KEYS.USER_DATA);
       return userData ? JSON.parse(userData) : null;
     } catch (error) {
-      console.error('User data alma hatası:', error);
+      console.error('Get user data error:', error);
       return null;
     }
   }
 
-  // Hata yönetimi
+  // Error handling
   handleError(error) {
     if (error.response) {
-      // Sunucudan gelen hata
+      // Server error
       return {
-        message: error.response.data.message || 'Bir hata oluştu',
+        message: error.response.data.message || 'An error occurred',
         status: error.response.status,
         data: error.response.data,
       };
     } else if (error.request) {
-      // İstek gönderildi ama cevap gelmedi
+      // Request sent but no response
       return {
-        message: 'Sunucuya bağlanılamadı',
+        message: 'Could not connect to server',
         status: 0,
       };
     } else {
-      // İstek oluşturulurken hata
+      // Error creating request
       return {
-        message: error.message || 'Bilinmeyen bir hata oluştu',
+        message: error.message || 'An unknown error occurred',
         status: -1,
       };
     }

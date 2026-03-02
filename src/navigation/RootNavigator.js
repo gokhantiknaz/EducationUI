@@ -67,11 +67,14 @@ const RootNavigator = () => {
       const data = response.notification.request.content.data;
 
       // Navigate based on notification data
-      if (data?.courseId && navigationRef.current) {
-        navigationRef.current.navigate('CourseDetail', { courseId: data.courseId });
-      } else if (data?.actionUrl && navigationRef.current) {
-        // Handle custom action URLs
-        console.log('Notification action URL:', data.actionUrl);
+      if (navigationRef.current) {
+        if (data?.courseId) {
+          // If notification has course info, go to course detail
+          navigationRef.current.navigate('CourseDetail', { courseId: data.courseId });
+        } else {
+          // Otherwise, go to notifications screen
+          navigationRef.current.navigate('Notifications');
+        }
       }
     });
 
@@ -80,8 +83,17 @@ const RootNavigator = () => {
       if (response) {
         console.log('App opened via notification:', response);
         const data = response.notification.request.content.data;
-        if (data?.courseId && navigationRef.current) {
-          navigationRef.current.navigate('CourseDetail', { courseId: data.courseId });
+        if (navigationRef.current) {
+          if (data?.courseId) {
+            navigationRef.current.navigate('CourseDetail', { courseId: data.courseId });
+          } else {
+            // Navigate to notifications screen after a short delay to ensure navigation is ready
+            setTimeout(() => {
+              if (navigationRef.current) {
+                navigationRef.current.navigate('Notifications');
+              }
+            }, 500);
+          }
         }
       }
     });
@@ -112,7 +124,7 @@ const RootNavigator = () => {
 
   // Show loading while checking auth
   if (authLoading) {
-    return <Loading text="Yükleniyor..." />;
+    return <Loading text="Loading..." />;
   }
 
   console.log('RootNavigator rendering - isAuthenticated:', isAuthenticated);

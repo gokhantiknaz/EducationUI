@@ -12,12 +12,14 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { COLORS, SIZES, SHADOWS } from '../constants/theme';
 import useAuthStore from '../store/authStore';
 import useCourseStore from '../store/courseStore';
+import useNotificationStore from '../store/notificationStore';
 import Button from '../components/Button';
 import Loading from '../components/Loading';
 
 const DashboardScreen = ({ navigation }) => {
   const { user, logout } = useAuthStore();
   const { myCourses, fetchMyCourses, isLoading } = useCourseStore();
+  const { unreadCount, fetchNotifications } = useNotificationStore();
   const [showDropdown, setShowDropdown] = useState(false);
 
   useEffect(() => {
@@ -29,6 +31,8 @@ const DashboardScreen = ({ navigation }) => {
       console.log('Loading courses...');
       const response = await fetchMyCourses();
       console.log('Courses loaded:', response);
+      // Also fetch notifications for badge count
+      await fetchNotifications(1, 20);
     } catch (error) {
       console.error('Failed to load dashboard:', JSON.stringify(error, null, 2));
       alert(`Error: ${error.message}\n\nDetails: ${JSON.stringify(error.data?.errors || error.data, null, 2)}`);
@@ -70,17 +74,35 @@ const DashboardScreen = ({ navigation }) => {
               {user?.firstName} {user?.lastName}
             </Text>
           </View>
-          <TouchableOpacity
-            style={styles.avatarContainer}
-            onPress={() => {
-              console.log('Avatar clicked, current showDropdown:', showDropdown);
-              setShowDropdown(!showDropdown);
-            }}
-          >
-            <Text style={styles.avatarText}>
-              {user?.firstName?.charAt(0)}{user?.lastName?.charAt(0)}
-            </Text>
-          </TouchableOpacity>
+          <View style={styles.headerRight}>
+            {/* Notification Bell */}
+            <TouchableOpacity
+              style={styles.notificationButton}
+              onPress={() => navigation.navigate('Notifications')}
+            >
+              <Text style={styles.notificationIcon}>🔔</Text>
+              {unreadCount > 0 && (
+                <View style={styles.notificationBadge}>
+                  <Text style={styles.notificationBadgeText}>
+                    {unreadCount > 99 ? '99+' : unreadCount}
+                  </Text>
+                </View>
+              )}
+            </TouchableOpacity>
+
+            {/* Avatar */}
+            <TouchableOpacity
+              style={styles.avatarContainer}
+              onPress={() => {
+                console.log('Avatar clicked, current showDropdown:', showDropdown);
+                setShowDropdown(!showDropdown);
+              }}
+            >
+              <Text style={styles.avatarText}>
+                {user?.firstName?.charAt(0)}{user?.lastName?.charAt(0)}
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Stats */}
@@ -209,6 +231,42 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: SIZES.paddingLarge,
+  },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SIZES.paddingSmall,
+  },
+  notificationButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: COLORS.backgroundDark,
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+  },
+  notificationIcon: {
+    fontSize: 20,
+  },
+  notificationBadge: {
+    position: 'absolute',
+    top: -2,
+    right: -2,
+    backgroundColor: COLORS.error,
+    borderRadius: 10,
+    minWidth: 18,
+    height: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 4,
+    borderWidth: 2,
+    borderColor: COLORS.background,
+  },
+  notificationBadgeText: {
+    fontSize: 10,
+    color: COLORS.background,
+    fontWeight: 'bold',
   },
   greeting: {
     fontSize: SIZES.body1,

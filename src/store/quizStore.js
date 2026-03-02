@@ -33,7 +33,7 @@ const useQuizStore = create((set, get) => ({
       return response;
     } catch (error) {
       set({
-        error: error.message || 'Quiz listesi yüklenemedi',
+        error: error.message || 'Could not load quiz list',
         isLoading: false,
       });
       throw error;
@@ -86,7 +86,7 @@ const useQuizStore = create((set, get) => ({
       return response;
     } catch (error) {
       set({
-        error: error.message || 'Quiz başlatılamadı',
+        error: error.message || 'Could not start quiz',
         isLoading: false,
       });
       throw error;
@@ -178,7 +178,7 @@ const useQuizStore = create((set, get) => ({
     const { currentAttempt, answers, currentQuiz } = get();
 
     if (!currentAttempt) {
-      throw new Error('Quiz denemesi bulunamadı');
+      throw new Error('Quiz attempt not found');
     }
 
     set({ isSubmitting: true, error: null });
@@ -238,7 +238,7 @@ const useQuizStore = create((set, get) => ({
       return response;
     } catch (error) {
       set({
-        error: error.message || 'Quiz gönderilemedi',
+        error: error.message || 'Could not submit quiz',
         isSubmitting: false,
       });
       throw error;
@@ -257,7 +257,7 @@ const useQuizStore = create((set, get) => ({
       return response;
     } catch (error) {
       set({
-        error: error.message || 'Deneme geçmişi yüklenemedi',
+        error: error.message || 'Could not load attempt history',
         isLoading: false,
       });
       throw error;

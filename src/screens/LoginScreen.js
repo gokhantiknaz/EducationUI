@@ -16,12 +16,12 @@ import SocialLoginButtons from '../components/SocialLoginButtons';
 import useAuthStore from '../store/authStore';
 import { showSuccessToast, showErrorToast } from '../utils/toast';
 
-// Test kullanıcıları (sadece development modda görünür)
+// Test users (only visible in development mode)
 const TEST_USERS = [
   {
     id: 'testuser1',
     label: 'Test User 1',
-    description: 'Ücretsiz kullanıcı',
+    description: 'Free user',
     email: 'testuser1@test.com',
     password: 'Test123!',
     color: '#3B82F6',
@@ -29,7 +29,7 @@ const TEST_USERS = [
   {
     id: 'testuser2',
     label: 'Test User 2',
-    description: 'Premium kullanıcı (kurs satın almış)',
+    description: 'Premium user (purchased course)',
     email: 'testuser2@test.com',
     password: 'Test123!',
     color: '#10B981',
@@ -44,13 +44,13 @@ const LoginScreen = ({ navigation }) => {
 
   const { login, isLoading } = useAuthStore();
 
-  // Test kullanıcısı ile hızlı giriş
+  // Quick login with test user
   const handleTestUserLogin = async (testUser) => {
     try {
       await login(testUser.email, testUser.password);
-      showSuccessToast(`${testUser.label} olarak giriş yapıldı!`, 'Giriş Başarılı');
+      showSuccessToast(`Logged in as ${testUser.label}!`, 'Login Successful');
     } catch (error) {
-      showErrorToast(error.message || 'Giriş başarısız', 'Hata');
+      showErrorToast(error.message || 'Login failed', 'Error');
     }
   };
 
@@ -79,16 +79,16 @@ const LoginScreen = ({ navigation }) => {
     try {
       await login(email.trim(), password);
       showSuccessToast('Login successful! Welcome.', 'Login Successful');
-      // Navigation otomatik olarak AuthNavigator tarafından yönetilecek
+      // Navigation will be handled automatically by AuthNavigator
     } catch (error) {
-      // Backend'den gelen hata mesajlarını göster
+      // Show error messages from backend
       const errorMessage = error.message || 'Login failed';
 
-      // Yaygın hata durumları için özel mesajlar
+      // Custom messages for common error cases
       if (errorMessage.toLowerCase().includes('not found') ||
           errorMessage.toLowerCase().includes('bulunamadı') ||
           errorMessage.toLowerCase().includes('kullanıcı yok')) {
-        showErrorToast('Bu e-posta adresi ile kayıtlı kullanıcı bulunamadı.', 'Kullanıcı Bulunamadı');
+        showErrorToast('No user found with this email address.', 'User Not Found');
       } else if (errorMessage.toLowerCase().includes('password') ||
                  errorMessage.toLowerCase().includes('şifre') ||
                  errorMessage.toLowerCase().includes('invalid credentials') ||
@@ -96,13 +96,13 @@ const LoginScreen = ({ navigation }) => {
         showErrorToast('Email or password is incorrect.', 'Login Error');
       } else if (errorMessage.toLowerCase().includes('locked') ||
                  errorMessage.toLowerCase().includes('kilitli')) {
-        showErrorToast('Hesabınız kilitlendi. Lütfen destek ile iletişime geçin.', 'Hesap Kilitli');
+        showErrorToast('Your account has been locked. Please contact support.', 'Account Locked');
       } else if (errorMessage.toLowerCase().includes('verify') ||
                  errorMessage.toLowerCase().includes('doğrula')) {
         showErrorToast('Please verify your email address.', 'Email Not Verified');
       } else if (errorMessage.toLowerCase().includes('network') ||
                  errorMessage.toLowerCase().includes('bağlan')) {
-        showErrorToast('Sunucuya bağlanılamadı. İnternet bağlantınızı kontrol edin.', 'Bağlantı Hatası');
+        showErrorToast('Could not connect to server. Check your internet connection.', 'Connection Error');
       } else {
         showErrorToast(errorMessage, 'Login Error');
       }
@@ -125,9 +125,9 @@ const LoginScreen = ({ navigation }) => {
             <View style={styles.iconContainer}>
               <Text style={styles.iconText}>📚</Text>
             </View>
-            <Text style={styles.title}>Hoş Geldiniz</Text>
+            <Text style={styles.title}>Welcome</Text>
             <Text style={styles.subtitle}>
-              Eğitim platformuna giriş yapın
+              Sign in to the education platform
             </Text>
           </View>
 
@@ -142,7 +142,7 @@ const LoginScreen = ({ navigation }) => {
                   setErrors({ ...errors, email: null });
                 }
               }}
-              placeholder="ornek@email.com"
+              placeholder="example@email.com"
               keyboardType="email-address"
               autoCapitalize="none"
               error={errors.email}
@@ -170,7 +170,7 @@ const LoginScreen = ({ navigation }) => {
               style={styles.forgotPassword}
               onPress={() => navigation.navigate('ForgotPassword')}
             >
-              <Text style={styles.forgotPasswordText}>Passwordmi Unuttum?</Text>
+              <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
             </TouchableOpacity>
 
             <Button
@@ -182,7 +182,7 @@ const LoginScreen = ({ navigation }) => {
 
             <View style={styles.divider}>
               <View style={styles.dividerLine} />
-              <Text style={styles.dividerText}>veya</Text>
+              <Text style={styles.dividerText}>or</Text>
               <View style={styles.dividerLine} />
             </View>
 
@@ -195,12 +195,12 @@ const LoginScreen = ({ navigation }) => {
               </TouchableOpacity>
             </View>
 
-            {/* Test Kullanıcıları - Sadece Development Modda */}
+            {/* Test Users - Only in Development Mode */}
             {__DEV__ && (
               <View style={styles.testUsersContainer}>
                 <View style={styles.testUsersDivider}>
                   <View style={styles.dividerLine} />
-                  <Text style={styles.testUsersTitle}>🧪 Test Kullanıcıları</Text>
+                  <Text style={styles.testUsersTitle}>🧪 Test Users</Text>
                   <View style={styles.dividerLine} />
                 </View>
                 {TEST_USERS.map((testUser) => (

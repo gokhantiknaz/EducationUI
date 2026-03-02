@@ -2,7 +2,7 @@ import React from 'react';
 import { View, ActivityIndicator, StyleSheet, Text } from 'react-native';
 import { COLORS, SIZES } from '../constants/theme';
 
-const Loading = ({ text = 'Yükleniyor...', size = 'large', color = COLORS.primary }) => {
+const Loading = ({ text = 'Loading...', size = 'large', color = COLORS.primary }) => {
   return (
     <View style={styles.container}>
       <ActivityIndicator size={size} color={color} />

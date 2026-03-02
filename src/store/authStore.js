@@ -84,7 +84,7 @@ const useAuthStore = create((set, get) => ({
 
   // Logout
   logout: async () => {
-    console.log('authStore - logout başladı');
+    console.log('authStore - logout started');
     set({ isLoading: true });
     try {
       // Remove push notification token from backend
@@ -96,16 +96,16 @@ const useAuthStore = create((set, get) => ({
       }
 
       await authService.logout();
-      console.log('authService.logout başarılı');
+      console.log('authService.logout successful');
       set({
         user: null,
         isAuthenticated: false,
         isLoading: false,
         error: null,
       });
-      console.log('authStore - state güncellendi, isAuthenticated: false');
+      console.log('authStore - state updated, isAuthenticated: false');
     } catch (error) {
-      console.error('authStore - logout hatası:', error);
+      console.error('authStore - logout error:', error);
       set({
         error: error.message,
         isLoading: false,

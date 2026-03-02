@@ -2,7 +2,7 @@ import apiClient from './api';
 import { API_ENDPOINTS, APP_ID } from '../constants/config';
 
 class CourseService {
-  // Tüm kursları getir (Public) - APP_ID ile filtrelenir
+  // Get all courses (Public) - Filtered by APP_ID
   async getCourses(params = {}) {
     try {
       const response = await apiClient.get(API_ENDPOINTS.COURSES, {
@@ -15,7 +15,7 @@ class CourseService {
     }
   }
 
-  // Kurs detayını getir (Public)
+  // Get course detail (Public)
   async getCourseDetail(courseId) {
     try {
       const response = await apiClient.get(API_ENDPOINTS.COURSE_DETAIL(courseId));
@@ -26,7 +26,7 @@ class CourseService {
     }
   }
 
-  // Kullanıcının kayıtlı olduğu kursları getir (Requires Auth)
+  // Get user's enrolled courses (Requires Auth)
   // Backend endpoint: GET /api/enrollments/my-courses
   async getMyCourses() {
     try {
@@ -39,7 +39,7 @@ class CourseService {
     }
   }
 
-  // Öğrenmeye devam edilecek kursları getir (Requires Auth)
+  // Get courses to continue learning (Requires Auth)
   async getContinueLearning() {
     try {
       const response = await apiClient.get(API_ENDPOINTS.CONTINUE_LEARNING);
@@ -49,7 +49,7 @@ class CourseService {
     }
   }
 
-  // Tamamlanmış kursları getir (Requires Auth)
+  // Get completed courses (Requires Auth)
   async getCompletedCourses() {
     try {
       const response = await apiClient.get(API_ENDPOINTS.COMPLETED_COURSES);
@@ -59,7 +59,7 @@ class CourseService {
     }
   }
 
-  // Kurs kayıt durumunu kontrol et (Requires Auth)
+  // Check course enrollment status (Requires Auth)
   async getEnrollmentStatus(courseId) {
     try {
       const response = await apiClient.get(API_ENDPOINTS.ENROLLMENT_STATUS(courseId));
@@ -69,7 +69,7 @@ class CourseService {
     }
   }
 
-  // Kurs önizleme videosunu getir (Public)
+  // Get course preview video (Public)
   async getCoursePreviewVideo(courseId) {
     try {
       const response = await apiClient.get(API_ENDPOINTS.COURSE_PREVIEW_VIDEO(courseId));
@@ -79,7 +79,7 @@ class CourseService {
     }
   }
 
-  // Ders video stream URL'ini getir (Requires Auth)
+  // Get lesson video stream URL (Requires Auth)
   async getLessonStreamUrl(lessonId) {
     try {
       const response = await apiClient.get(API_ENDPOINTS.LESSON_STREAM_URL(lessonId));
@@ -89,7 +89,7 @@ class CourseService {
     }
   }
 
-  // Ders belge URL'ini getir (Requires Auth) - S3 için pre-signed URL döner
+  // Get lesson document URL (Requires Auth) - Returns pre-signed URL for S3
   async getLessonDocumentUrl(lessonId) {
     try {
       const response = await apiClient.get(API_ENDPOINTS.LESSON_DOCUMENT_URL(lessonId));
@@ -99,7 +99,7 @@ class CourseService {
     }
   }
 
-  // Ders ilerlemesini getir (Requires Auth)
+  // Get lesson progress (Requires Auth)
   async getLessonProgress(lessonId) {
     try {
       const response = await apiClient.get(API_ENDPOINTS.LESSON_PROGRESS(lessonId));
@@ -109,7 +109,7 @@ class CourseService {
     }
   }
 
-  // Kurs için tüm ders ilerlemelerini getir (Requires Auth)
+  // Get all lesson progress for a course (Requires Auth)
   async getCourseLessonsProgress(courseId) {
     try {
       const response = await apiClient.get(API_ENDPOINTS.COURSE_LESSONS_PROGRESS(courseId));
@@ -119,7 +119,7 @@ class CourseService {
     }
   }
 
-  // Ders ilerlemesini kaydet (Requires Auth)
+  // Save lesson progress (Requires Auth)
   // data: { watchedSeconds, lastPosition, isCompleted }
   async saveLessonProgress(lessonId, progressData) {
     try {
@@ -130,7 +130,7 @@ class CourseService {
     }
   }
 
-  // Dersi tamamlandı olarak işaretle (Requires Auth)
+  // Mark lesson as complete (Requires Auth)
   async markLessonComplete(lessonId) {
     try {
       const response = await apiClient.post(API_ENDPOINTS.SAVE_LESSON_PROGRESS(lessonId), {
@@ -142,7 +142,7 @@ class CourseService {
     }
   }
 
-  // Kategorileri getir (Public)
+  // Get categories (Public)
   async getCategories(isActive = true) {
     try {
       const response = await apiClient.get(API_ENDPOINTS.CATEGORIES, {
@@ -154,7 +154,7 @@ class CourseService {
     }
   }
 
-  // Kategori detayını getir (Public)
+  // Get category detail (Public)
   async getCategoryDetail(categoryId) {
     try {
       const response = await apiClient.get(API_ENDPOINTS.CATEGORY_DETAIL(categoryId));
@@ -164,7 +164,7 @@ class CourseService {
     }
   }
 
-  // Sipariş oluştur (Requires Auth)
+  // Create order (Requires Auth)
   // courseIds: array of course IDs, paymentMethod: string
   async createOrder(courseIds, paymentMethod = 'CreditCard') {
     try {
@@ -178,7 +178,7 @@ class CourseService {
     }
   }
 
-  // Siparişi tamamla (Requires Auth)
+  // Complete order (Requires Auth)
   async completeOrder(orderId, paymentData) {
     try {
       const response = await apiClient.post(API_ENDPOINTS.COMPLETE_ORDER(orderId), paymentData);
@@ -188,7 +188,7 @@ class CourseService {
     }
   }
 
-  // Kullanıcının siparişlerini getir (Requires Auth)
+  // Get user's orders (Requires Auth)
   async getMyOrders(page = 1, pageSize = 10) {
     try {
       const response = await apiClient.get(API_ENDPOINTS.MY_ORDERS, {
@@ -200,7 +200,7 @@ class CourseService {
     }
   }
 
-  // Sipariş detayını getir (Requires Auth)
+  // Get order detail (Requires Auth)
   async getOrderDetail(orderId) {
     try {
       const response = await apiClient.get(API_ENDPOINTS.ORDER_DETAIL(orderId));
@@ -210,7 +210,7 @@ class CourseService {
     }
   }
 
-  // Promosyon kodu doğrula (Requires Auth)
+  // Validate promo code (Requires Auth)
   // Returns: { isValid, errorMessage, promoCodeId, code, discountType, discountValue, discountAmount, finalPrice }
   async validatePromoCode(code, courseId, orderAmount) {
     try {
@@ -225,7 +225,7 @@ class CourseService {
     }
   }
 
-  // Promosyon kodunu siparişe uygula (Requires Auth)
+  // Apply promo code to order (Requires Auth)
   async applyPromoCode(promoCodeId, orderId, discountAmount) {
     try {
       const response = await apiClient.post(API_ENDPOINTS.APPLY_PROMO_CODE, {
@@ -239,22 +239,22 @@ class CourseService {
     }
   }
 
-  // Hata yönetimi
+  // Error handling
   handleError(error) {
     if (error.response) {
       return {
-        message: error.response.data.message || 'Bir hata oluştu',
+        message: error.response.data.message || 'An error occurred',
         status: error.response.status,
         data: error.response.data,
       };
     } else if (error.request) {
       return {
-        message: 'Sunucuya bağlanılamadı',
+        message: 'Could not connect to server',
         status: 0,
       };
     } else {
       return {
-        message: error.message || 'Bilinmeyen bir hata oluştu',
+        message: error.message || 'An unknown error occurred',
         status: -1,
       };
     }

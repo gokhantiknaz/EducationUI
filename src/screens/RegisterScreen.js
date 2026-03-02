@@ -41,27 +41,27 @@ const RegisterScreen = ({ navigation }) => {
     const newErrors = {};
 
     if (!formData.firstName.trim()) {
-      newErrors.firstName = 'Ad gereklidir';
+      newErrors.firstName = 'First name is required';
     }
 
     if (!formData.lastName.trim()) {
-      newErrors.lastName = 'Soyad gereklidir';
+      newErrors.lastName = 'Last name is required';
     }
 
     if (!formData.email.trim()) {
-      newErrors.email = 'E-posta adresi gereklidir';
+      newErrors.email = 'Email address is required';
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = 'Geçerli bir e-posta adresi giriniz';
+      newErrors.email = 'Please enter a valid email address';
     }
 
     if (!formData.password) {
-      newErrors.password = 'Şifre gereklidir';
+      newErrors.password = 'Password is required';
     } else if (formData.password.length < 6) {
-      newErrors.password = 'Şifre en az 6 karakter olmalıdır';
+      newErrors.password = 'Password must be at least 6 characters';
     }
 
     if (!formData.confirmPassword) {
-      newErrors.confirmPassword = 'Şifre tekrarı gereklidir';
+      newErrors.confirmPassword = 'Confirm password is required';
     } else if (formData.password !== formData.confirmPassword) {
       newErrors.confirmPassword = 'Passwords do not match';
     }
@@ -82,25 +82,25 @@ const RegisterScreen = ({ navigation }) => {
       };
 
       await register(userData);
-      showSuccessToast('Hesabınız başarıyla oluşturuldu!', 'Registration Successful');
-      // Navigation otomatik olarak AuthNavigator tarafından yönetilecek
+      showSuccessToast('Your account has been created successfully!', 'Registration Successful');
+      // Navigation will be handled automatically by AuthNavigator
     } catch (error) {
-      // Backend'den gelen hata mesajlarını göster
-      const errorMessage = error.message || 'Kayıt olunamadı';
+      // Show error messages from backend
+      const errorMessage = error.message || 'Registration failed';
 
-      // Yaygın hata durumları için özel mesajlar
+      // Custom messages for common error cases
       if (errorMessage.toLowerCase().includes('already') ||
           errorMessage.toLowerCase().includes('zaten') ||
           errorMessage.toLowerCase().includes('exists')) {
-        showErrorToast('Bu e-posta adresi zaten kayıtlı. Giriş yapmayı deneyin.', 'Kayıtlı Kullanıcı');
+        showErrorToast('This email address is already registered. Try logging in.', 'Already Registered');
       } else if (errorMessage.toLowerCase().includes('email') &&
                  errorMessage.toLowerCase().includes('invalid')) {
-        showErrorToast('Geçersiz e-posta adresi formatı.', 'Geçersiz E-posta');
+        showErrorToast('Invalid email address format.', 'Invalid Email');
       } else if (errorMessage.toLowerCase().includes('password')) {
-        showErrorToast('Şifre gereksinimleri karşılanmıyor.', 'Şifre Hatası');
+        showErrorToast('Password requirements not met.', 'Password Error');
       } else if (errorMessage.toLowerCase().includes('network') ||
                  errorMessage.toLowerCase().includes('bağlan')) {
-        showErrorToast('Sunucuya bağlanılamadı. İnternet bağlantınızı kontrol edin.', 'Bağlantı Hatası');
+        showErrorToast('Could not connect to server. Check your internet connection.', 'Connection Error');
       } else {
         showErrorToast(errorMessage, 'Registration Error');
       }
@@ -124,44 +124,44 @@ const RegisterScreen = ({ navigation }) => {
               style={styles.backButton}
               onPress={() => navigation.goBack()}
             >
-              <Text style={styles.backButtonText}>← Geri</Text>
+              <Text style={styles.backButtonText}>← Back</Text>
             </TouchableOpacity>
-            <Text style={styles.title}>Hesap Oluştur</Text>
+            <Text style={styles.title}>Create Account</Text>
             <Text style={styles.subtitle}>
-              Eğitim platformuna katılın
+              Join the education platform
             </Text>
           </View>
 
           {/* Form */}
           <View style={styles.form}>
             <Input
-              label="Ad"
+              label="First Name"
               value={formData.firstName}
               onChangeText={(text) => updateField('firstName', text)}
-              placeholder="Adınız"
+              placeholder="Your first name"
               error={errors.firstName}
             />
 
             <Input
-              label="Soyad"
+              label="Last Name"
               value={formData.lastName}
               onChangeText={(text) => updateField('lastName', text)}
-              placeholder="Soyadınız"
+              placeholder="Your last name"
               error={errors.lastName}
             />
 
             <Input
-              label="E-posta"
+              label="Email"
               value={formData.email}
               onChangeText={(text) => updateField('email', text)}
-              placeholder="ornek@email.com"
+              placeholder="example@email.com"
               keyboardType="email-address"
               autoCapitalize="none"
               error={errors.email}
             />
 
             <Input
-              label="Şifre"
+              label="Password"
               value={formData.password}
               onChangeText={(text) => updateField('password', text)}
               placeholder="••••••••"
@@ -197,7 +197,7 @@ const RegisterScreen = ({ navigation }) => {
 
             <View style={styles.divider}>
               <View style={styles.dividerLine} />
-              <Text style={styles.dividerText}>veya</Text>
+              <Text style={styles.dividerText}>or</Text>
               <View style={styles.dividerLine} />
             </View>
 

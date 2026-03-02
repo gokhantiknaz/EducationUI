@@ -32,13 +32,13 @@ const PurchaseScreen = ({ route, navigation }) => {
   const finalPrice = promoApplied ? currentPrice - discount : currentPrice;
 
   const paymentMethods = [
-    { id: 'credit_card', name: 'Kredi Kartı', icon: 'card-outline', description: 'Visa, Mastercard, Troy' },
-    { id: 'bank_transfer', name: 'Havale/EFT', icon: 'business-outline', description: 'Banka transferi ile ödeme' },
+    { id: 'credit_card', name: 'Credit Card', icon: 'card-outline', description: 'Visa, Mastercard, Troy' },
+    { id: 'bank_transfer', name: 'Bank Transfer', icon: 'business-outline', description: 'Pay via bank transfer' },
   ];
 
   const handleApplyPromo = async () => {
     if (!promoCode.trim()) {
-      showInfoToast('Lütfen promosyon kodu girin', 'Bilgi');
+      showInfoToast('Please enter a promo code', 'Info');
       return;
     }
 
@@ -61,16 +61,16 @@ const PurchaseScreen = ({ route, navigation }) => {
         });
         showSuccessToast(
           result.discountType === 'Percentage'
-            ? `%${result.discountValue} indirim uygulandı!`
-            : `${result.discountAmount.toFixed(2)} ₺ indirim uygulandı!`,
-          'Promosyon Kodu'
+            ? `${result.discountValue}% discount applied!`
+            : `${result.discountAmount.toFixed(2)} ₺ discount applied!`,
+          'Promo Code'
         );
       } else {
-        showErrorToast(result.errorMessage || 'Geçersiz promosyon kodu', 'Hata');
+        showErrorToast(result.errorMessage || 'Invalid promo code', 'Error');
       }
     } catch (error) {
       console.error('Promo validation error:', error);
-      showErrorToast(error.message || 'Promosyon kodu doğrulanamadı', 'Hata');
+      showErrorToast(error.message || 'Could not validate promo code', 'Error');
     } finally {
       setIsValidatingPromo(false);
     }
@@ -81,7 +81,7 @@ const PurchaseScreen = ({ route, navigation }) => {
     setDiscount(0);
     setPromoData(null);
     setPromoCode('');
-    showInfoToast('Promosyon kodu kaldırıldı', 'Bilgi');
+    showInfoToast('Promo code removed', 'Info');
   };
 
   const handlePurchase = async () => {
@@ -112,14 +112,14 @@ const PurchaseScreen = ({ route, navigation }) => {
           paymentMethod: selectedPaymentMethod,
         });
 
-        showSuccessToast('Satın alma başarılı! Kursa erişiminiz aktif edildi.', 'Tebrikler');
+        showSuccessToast('Purchase successful! Your course access has been activated.', 'Congratulations');
 
         // Kurs detay sayfasına geri dön
         navigation.goBack();
       }
     } catch (error) {
       console.error('Purchase error:', error);
-      showErrorToast(error.message || 'Satın alma işlemi başarısız oldu', 'Hata');
+      showErrorToast(error.message || 'Purchase failed', 'Error');
     } finally {
       setIsProcessing(false);
     }
@@ -136,7 +136,7 @@ const PurchaseScreen = ({ route, navigation }) => {
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={24} color={COLORS.text} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Satın Al</Text>
+        <Text style={styles.headerTitle}>Purchase</Text>
         <View style={styles.headerRight} />
       </View>
 
@@ -148,13 +148,13 @@ const PurchaseScreen = ({ route, navigation }) => {
           )}
           <View style={styles.courseInfo}>
             <Text style={styles.courseTitle} numberOfLines={2}>{course?.title}</Text>
-            <Text style={styles.courseInstructor}>{course?.instructorName || 'Eğitmen'}</Text>
+            <Text style={styles.courseInstructor}>{course?.instructorName || 'Instructor'}</Text>
             <View style={styles.courseMeta}>
               {course?.durationMinutes && (
                 <View style={styles.metaItem}>
                   <Ionicons name="time-outline" size={14} color={COLORS.textLight} />
                   <Text style={styles.metaText}>
-                    {Math.floor(course.durationMinutes / 60)}s {course.durationMinutes % 60}dk
+                    {Math.floor(course.durationMinutes / 60)}h {course.durationMinutes % 60}m
                   </Text>
                 </View>
               )}
@@ -162,7 +162,7 @@ const PurchaseScreen = ({ route, navigation }) => {
                 <View style={styles.metaItem}>
                   <Ionicons name="list-outline" size={14} color={COLORS.textLight} />
                   <Text style={styles.metaText}>
-                    {course.sections.reduce((acc, s) => acc + (s.lessons?.length || 0), 0)} ders
+                    {course.sections.reduce((acc, s) => acc + (s.lessons?.length || 0), 0)} lessons
                   </Text>
                 </View>
               )}
@@ -172,7 +172,7 @@ const PurchaseScreen = ({ route, navigation }) => {
 
         {/* Payment Methods */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Ödeme Yöntemi</Text>
+          <Text style={styles.sectionTitle}>Payment Method</Text>
           {paymentMethods.map((method) => (
             <TouchableOpacity
               key={method.id}
@@ -213,7 +213,7 @@ const PurchaseScreen = ({ route, navigation }) => {
 
         {/* Promo Code */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Promosyon Kodu</Text>
+          <Text style={styles.sectionTitle}>Promo Code</Text>
           {promoApplied ? (
             <View style={styles.promoAppliedContainer}>
               <View style={styles.promoAppliedInfo}>
@@ -222,8 +222,8 @@ const PurchaseScreen = ({ route, navigation }) => {
                   <Text style={styles.promoAppliedCode}>{promoCode}</Text>
                   <Text style={styles.promoAppliedDiscount}>
                     {promoData?.discountType === 'Percentage'
-                      ? `%${promoData?.discountValue} indirim`
-                      : `${discount.toFixed(2)} ₺ indirim`}
+                      ? `${promoData?.discountValue}% discount`
+                      : `${discount.toFixed(2)} ₺ discount`}
                   </Text>
                 </View>
               </View>
@@ -235,7 +235,7 @@ const PurchaseScreen = ({ route, navigation }) => {
             <View style={styles.promoContainer}>
               <TextInput
                 style={styles.promoInput}
-                placeholder="Promosyon kodunuz varsa girin"
+                placeholder="Enter promo code if you have one"
                 placeholderTextColor={COLORS.textLight}
                 value={promoCode}
                 onChangeText={setPromoCode}
@@ -250,7 +250,7 @@ const PurchaseScreen = ({ route, navigation }) => {
                 {isValidatingPromo ? (
                   <ActivityIndicator size="small" color={COLORS.white} />
                 ) : (
-                  <Text style={styles.promoButtonText}>Uygula</Text>
+                  <Text style={styles.promoButtonText}>Apply</Text>
                 )}
               </TouchableOpacity>
             </View>
@@ -259,10 +259,10 @@ const PurchaseScreen = ({ route, navigation }) => {
 
         {/* Order Summary */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Sipariş Özeti</Text>
+          <Text style={styles.sectionTitle}>Order Summary</Text>
           <View style={styles.summaryCard}>
             <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>Kurs Ücreti</Text>
+              <Text style={styles.summaryLabel}>Course Price</Text>
               <Text style={[
                 styles.summaryValue,
                 discountedPrice && styles.summaryValueStrike,
@@ -273,7 +273,7 @@ const PurchaseScreen = ({ route, navigation }) => {
 
             {discountedPrice && (
               <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>İndirimli Fiyat</Text>
+                <Text style={styles.summaryLabel}>Discounted Price</Text>
                 <Text style={[styles.summaryValue, styles.discountValue]}>
                   {formatPrice(discountedPrice)}
                 </Text>
@@ -282,7 +282,7 @@ const PurchaseScreen = ({ route, navigation }) => {
 
             {promoApplied && discount > 0 && (
               <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>Promosyon İndirimi</Text>
+                <Text style={styles.summaryLabel}>Promo Discount</Text>
                 <Text style={[styles.summaryValue, styles.discountValue]}>
                   -{formatPrice(discount)}
                 </Text>
@@ -292,7 +292,7 @@ const PurchaseScreen = ({ route, navigation }) => {
             <View style={styles.divider} />
 
             <View style={styles.summaryRow}>
-              <Text style={styles.totalLabel}>Toplam</Text>
+              <Text style={styles.totalLabel}>Total</Text>
               <Text style={styles.totalValue}>{formatPrice(finalPrice)}</Text>
             </View>
           </View>
@@ -300,22 +300,22 @@ const PurchaseScreen = ({ route, navigation }) => {
 
         {/* Features */}
         <View style={styles.featuresSection}>
-          <Text style={styles.featuresSectionTitle}>Satın alımınıza dahil:</Text>
+          <Text style={styles.featuresSectionTitle}>Included in your purchase:</Text>
           <View style={styles.featureItem}>
             <Ionicons name="checkmark-circle" size={20} color={COLORS.success} />
-            <Text style={styles.featureText}>Ömür boyu erişim</Text>
+            <Text style={styles.featureText}>Lifetime access</Text>
           </View>
           <View style={styles.featureItem}>
             <Ionicons name="checkmark-circle" size={20} color={COLORS.success} />
-            <Text style={styles.featureText}>Mobil ve web erişimi</Text>
+            <Text style={styles.featureText}>Mobile and web access</Text>
           </View>
           <View style={styles.featureItem}>
             <Ionicons name="checkmark-circle" size={20} color={COLORS.success} />
-            <Text style={styles.featureText}>Tamamlama sertifikası</Text>
+            <Text style={styles.featureText}>Certificate of completion</Text>
           </View>
           <View style={styles.featureItem}>
             <Ionicons name="checkmark-circle" size={20} color={COLORS.success} />
-            <Text style={styles.featureText}>30 gün para iade garantisi</Text>
+            <Text style={styles.featureText}>30-day money-back guarantee</Text>
           </View>
         </View>
 
@@ -325,11 +325,11 @@ const PurchaseScreen = ({ route, navigation }) => {
       {/* Purchase Button */}
       <View style={styles.bottomBar}>
         <View style={styles.bottomPriceContainer}>
-          <Text style={styles.bottomPriceLabel}>Toplam</Text>
+          <Text style={styles.bottomPriceLabel}>Total</Text>
           <Text style={styles.bottomPriceValue}>{formatPrice(finalPrice)}</Text>
         </View>
         <Button
-          title={isProcessing ? 'İşleniyor...' : 'Satın Al'}
+          title={isProcessing ? 'Processing...' : 'Purchase'}
           onPress={handlePurchase}
           variant="primary"
           size="large"
@@ -343,8 +343,8 @@ const PurchaseScreen = ({ route, navigation }) => {
         <View style={styles.processingOverlay}>
           <View style={styles.processingCard}>
             <ActivityIndicator size="large" color={COLORS.primary} />
-            <Text style={styles.processingText}>Ödemeniz işleniyor...</Text>
-            <Text style={styles.processingSubtext}>Lütfen bekleyin</Text>
+            <Text style={styles.processingText}>Processing your payment...</Text>
+            <Text style={styles.processingSubtext}>Please wait</Text>
           </View>
         </View>
       )}

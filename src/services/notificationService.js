@@ -93,6 +93,11 @@ export const sendTokenToBackend = async (token) => {
     console.log('Push token registered with backend');
     return true;
   } catch (error) {
+    // Silently ignore auth errors (401, 404) - user is not logged in
+    if (error.response?.status === 401 || error.response?.status === 404) {
+      console.log('Push token registration skipped - user not authenticated');
+      return false;
+    }
     console.error('Error registering push token:', error);
     return false;
   }
@@ -114,6 +119,12 @@ export const removeTokenFromBackend = async () => {
 
     return true;
   } catch (error) {
+    // Silently ignore auth errors (401, 404) - user session already invalid
+    if (error.response?.status === 401 || error.response?.status === 404) {
+      // Still clear local token
+      await AsyncStorage.removeItem(STORAGE_KEYS.PUSH_TOKEN);
+      return true;
+    }
     console.error('Error removing push token:', error);
     return false;
   }

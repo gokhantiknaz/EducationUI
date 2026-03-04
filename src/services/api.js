@@ -1,6 +1,12 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { DeviceEventEmitter } from 'react-native';
 import { API_BASE_URL, REQUEST_TIMEOUT, STORAGE_KEYS } from '../constants/config';
+
+// Auth event constants
+export const AUTH_EVENTS = {
+  LOGOUT_REQUIRED: 'AUTH_LOGOUT_REQUIRED',
+};
 
 // Axios instance oluştur
 const apiClient = axios.create({
@@ -71,7 +77,7 @@ apiClient.interceptors.response.use(
           }
         }
       } catch (refreshError) {
-        console.log('Token refresh failed:', refreshError);
+        console.log('Token refresh failed, triggering logout');
         // Refresh token da geçersizse logout yap
         await AsyncStorage.multiRemove([
           STORAGE_KEYS.AUTH_TOKEN,
@@ -79,7 +85,24 @@ apiClient.interceptors.response.use(
           STORAGE_KEYS.USER_DATA,
         ]);
 
+        // Emit logout event - app will navigate to login
+        DeviceEventEmitter.emit(AUTH_EVENTS.LOGOUT_REQUIRED);
+
         return Promise.reject(refreshError);
+      }
+    }
+
+    // 401 hatası ve refresh token yoksa da logout event'i gönder
+    if (error.response?.status === 401) {
+      const refreshToken = await AsyncStorage.getItem(STORAGE_KEYS.REFRESH_TOKEN);
+      if (!refreshToken) {
+        console.log('No refresh token available, triggering logout');
+        await AsyncStorage.multiRemove([
+          STORAGE_KEYS.AUTH_TOKEN,
+          STORAGE_KEYS.REFRESH_TOKEN,
+          STORAGE_KEYS.USER_DATA,
+        ]);
+        DeviceEventEmitter.emit(AUTH_EVENTS.LOGOUT_REQUIRED);
       }
     }
 

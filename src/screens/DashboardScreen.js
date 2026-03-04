@@ -18,7 +18,7 @@ import Loading from '../components/Loading';
 
 const DashboardScreen = ({ navigation }) => {
   const { user, logout } = useAuthStore();
-  const { myCourses, fetchMyCourses, isLoading } = useCourseStore();
+  const { courses, myCourses, fetchCourses, fetchMyCourses, isLoading } = useCourseStore();
   const { unreadCount, fetchNotifications } = useNotificationStore();
   const [showDropdown, setShowDropdown] = useState(false);
 
@@ -28,9 +28,13 @@ const DashboardScreen = ({ navigation }) => {
 
   const loadData = async () => {
     try {
-      console.log('Loading courses...');
-      const response = await fetchMyCourses();
-      console.log('Courses loaded:', response);
+      console.log('Loading dashboard data...');
+      // Fetch all courses for this app
+      const coursesResponse = await fetchCourses();
+      console.log('All courses loaded:', coursesResponse);
+      // Fetch enrolled courses for "Continue Learning"
+      const myCoursesResponse = await fetchMyCourses();
+      console.log('My courses loaded:', myCoursesResponse);
       // Also fetch notifications for badge count
       await fetchNotifications(1, 20);
     } catch (error) {
@@ -127,12 +131,11 @@ const DashboardScreen = ({ navigation }) => {
           </View>
         </View>
 
-        {/* Continue Learning */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Continue Learning</Text>
-
-          {myCourses && myCourses.length > 0 ? (
-            myCourses.map((enrollment) => (
+        {/* Continue Learning - Only show if user has enrolled courses */}
+        {myCourses && myCourses.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Continue Learning</Text>
+            {myCourses.filter(e => !e.completedAt).slice(0, 3).map((enrollment) => (
               <TouchableOpacity
                 key={enrollment.enrollmentId}
                 style={styles.courseCard}
@@ -140,11 +143,7 @@ const DashboardScreen = ({ navigation }) => {
               >
                 <View style={styles.courseInfo}>
                   <Text style={styles.courseTitle}>{enrollment.course.title}</Text>
-                  <Text style={styles.courseCategory}>
-                    {enrollment.completedAt ? 'Completed' : 'In Progress'}
-                  </Text>
-
-                  {/* Progress Bar */}
+                  <Text style={styles.courseCategory}>In Progress</Text>
                   <View style={styles.progressContainer}>
                     <View style={styles.progressBar}>
                       <View
@@ -160,20 +159,71 @@ const DashboardScreen = ({ navigation }) => {
                   </View>
                 </View>
               </TouchableOpacity>
+            ))}
+          </View>
+        )}
+
+        {/* All Courses */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Available Courses</Text>
+
+          {courses && courses.items && courses.items.length > 0 ? (
+            courses.items.map((course) => (
+              <TouchableOpacity
+                key={course.id}
+                style={styles.courseCard}
+                onPress={() => navigation.navigate('CourseDetail', { courseId: course.id })}
+              >
+                <View style={styles.courseInfo}>
+                  <Text style={styles.courseTitle}>{course.title}</Text>
+                  <Text style={styles.courseCategory}>{course.categoryName || 'Course'}</Text>
+                  <View style={styles.courseMetaRow}>
+                    <Text style={styles.courseMeta}>
+                      {course.level} • {course.durationMinutes} min
+                    </Text>
+                    {course.price > 0 ? (
+                      <Text style={styles.coursePrice}>
+                        {course.discountPrice ? (
+                          <>
+                            <Text style={styles.originalPrice}>{course.price} {course.currency}</Text>
+                            {' '}{course.discountPrice} {course.currency}
+                          </>
+                        ) : (
+                          `${course.price} ${course.currency}`
+                        )}
+                      </Text>
+                    ) : (
+                      <Text style={styles.courseFree}>Free</Text>
+                    )}
+                  </View>
+                </View>
+              </TouchableOpacity>
+            ))
+          ) : courses && courses.length > 0 ? (
+            // Handle if courses is array directly
+            courses.map((course) => (
+              <TouchableOpacity
+                key={course.id}
+                style={styles.courseCard}
+                onPress={() => navigation.navigate('CourseDetail', { courseId: course.id })}
+              >
+                <View style={styles.courseInfo}>
+                  <Text style={styles.courseTitle}>{course.title}</Text>
+                  <Text style={styles.courseCategory}>{course.categoryName || 'Course'}</Text>
+                  <View style={styles.courseMetaRow}>
+                    <Text style={styles.courseMeta}>
+                      {course.level} • {course.durationMinutes} min
+                    </Text>
+                  </View>
+                </View>
+              </TouchableOpacity>
             ))
           ) : (
             <View style={styles.emptyState}>
               <Text style={styles.emptyStateIcon}>📚</Text>
               <Text style={styles.emptyStateText}>
-                You haven't enrolled in any courses yet
+                No courses available yet
               </Text>
-              <Button
-                title="Explore Courses"
-                onPress={() => navigation.navigate('Search')}
-                variant="primary"
-                size="medium"
-                style={styles.exploreButton}
-              />
             </View>
           )}
         </View>
@@ -383,7 +433,32 @@ const styles = StyleSheet.create({
   courseCategory: {
     fontSize: SIZES.body3,
     color: COLORS.textLight,
-    marginBottom: SIZES.padding,
+    marginBottom: SIZES.paddingSmall,
+  },
+  courseMetaRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: SIZES.paddingSmall,
+  },
+  courseMeta: {
+    fontSize: SIZES.body3,
+    color: COLORS.textLight,
+  },
+  coursePrice: {
+    fontSize: SIZES.body2,
+    fontWeight: 'bold',
+    color: COLORS.primary,
+  },
+  courseFree: {
+    fontSize: SIZES.body2,
+    fontWeight: 'bold',
+    color: COLORS.success,
+  },
+  originalPrice: {
+    textDecorationLine: 'line-through',
+    color: COLORS.textLight,
+    fontSize: SIZES.body3,
   },
   progressContainer: {
     flexDirection: 'row',

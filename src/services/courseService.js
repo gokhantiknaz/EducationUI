@@ -26,11 +26,13 @@ class CourseService {
     }
   }
 
-  // Get user's enrolled courses (Requires Auth)
+  // Get user's enrolled courses (Requires Auth) - Filtered by APP_ID
   // Backend endpoint: GET /api/enrollments/my-courses
   async getMyCourses() {
     try {
-      const response = await apiClient.get(API_ENDPOINTS.MY_COURSES);
+      const response = await apiClient.get(API_ENDPOINTS.MY_COURSES, {
+        params: { appId: APP_ID }
+      });
       console.log('getMyCourses response:', response.data);
       // Backend response: { success: true, data: [enrollmentDto, ...] }
       return response.data.success ? response.data.data : response.data;
@@ -39,20 +41,24 @@ class CourseService {
     }
   }
 
-  // Get courses to continue learning (Requires Auth)
+  // Get courses to continue learning (Requires Auth) - Filtered by APP_ID
   async getContinueLearning() {
     try {
-      const response = await apiClient.get(API_ENDPOINTS.CONTINUE_LEARNING);
+      const response = await apiClient.get(API_ENDPOINTS.CONTINUE_LEARNING, {
+        params: { appId: APP_ID }
+      });
       return response.data.success ? response.data.data : response.data;
     } catch (error) {
       throw this.handleError(error);
     }
   }
 
-  // Get completed courses (Requires Auth)
+  // Get completed courses (Requires Auth) - Filtered by APP_ID
   async getCompletedCourses() {
     try {
-      const response = await apiClient.get(API_ENDPOINTS.COMPLETED_COURSES);
+      const response = await apiClient.get(API_ENDPOINTS.COMPLETED_COURSES, {
+        params: { appId: APP_ID }
+      });
       return response.data.success ? response.data.data : response.data;
     } catch (error) {
       throw this.handleError(error);
@@ -63,6 +69,26 @@ class CourseService {
   async getEnrollmentStatus(courseId) {
     try {
       const response = await apiClient.get(API_ENDPOINTS.ENROLLMENT_STATUS(courseId));
+      return response.data.success ? response.data.data : response.data;
+    } catch (error) {
+      throw this.handleError(error);
+    }
+  }
+
+  // Enroll in a course (Requires Auth)
+  async enrollInCourse(courseId) {
+    try {
+      const response = await apiClient.post(API_ENDPOINTS.ENROLL_COURSE(courseId));
+      return response.data.success ? response.data.data : response.data;
+    } catch (error) {
+      throw this.handleError(error);
+    }
+  }
+
+  // Unenroll from a course (Requires Auth)
+  async unenrollFromCourse(courseId) {
+    try {
+      const response = await apiClient.delete(API_ENDPOINTS.UNENROLL_COURSE(courseId));
       return response.data.success ? response.data.data : response.data;
     } catch (error) {
       throw this.handleError(error);
@@ -93,6 +119,58 @@ class CourseService {
   async getLessonDocumentUrl(lessonId) {
     try {
       const response = await apiClient.get(API_ENDPOINTS.LESSON_DOCUMENT_URL(lessonId));
+      return response.data.success ? response.data.data : response.data;
+    } catch (error) {
+      throw this.handleError(error);
+    }
+  }
+
+  // ===================== Lesson Favorites =====================
+
+  // Get user's favorite lessons (Requires Auth)
+  async getFavoriteLessons() {
+    try {
+      const response = await apiClient.get(API_ENDPOINTS.FAVORITE_LESSONS);
+      return response.data.success ? response.data.data : response.data;
+    } catch (error) {
+      throw this.handleError(error);
+    }
+  }
+
+  // Add lesson to favorites (Requires Auth)
+  async addLessonToFavorites(lessonId) {
+    try {
+      const response = await apiClient.post(API_ENDPOINTS.ADD_LESSON_FAVORITE(lessonId));
+      return response.data.success ? response.data.data : response.data;
+    } catch (error) {
+      throw this.handleError(error);
+    }
+  }
+
+  // Remove lesson from favorites (Requires Auth)
+  async removeLessonFromFavorites(lessonId) {
+    try {
+      const response = await apiClient.delete(API_ENDPOINTS.REMOVE_LESSON_FAVORITE(lessonId));
+      return response.data.success ? response.data.data : response.data;
+    } catch (error) {
+      throw this.handleError(error);
+    }
+  }
+
+  // Get favorite status for a single lesson (Requires Auth)
+  async getLessonFavoriteStatus(lessonId) {
+    try {
+      const response = await apiClient.get(API_ENDPOINTS.LESSON_FAVORITE_STATUS(lessonId));
+      return response.data.success ? response.data.data : response.data;
+    } catch (error) {
+      throw this.handleError(error);
+    }
+  }
+
+  // Get favorite statuses for multiple lessons (Requires Auth)
+  async getLessonFavoriteStatuses(lessonIds) {
+    try {
+      const response = await apiClient.post(API_ENDPOINTS.LESSON_FAVORITE_STATUSES, lessonIds);
       return response.data.success ? response.data.data : response.data;
     } catch (error) {
       throw this.handleError(error);

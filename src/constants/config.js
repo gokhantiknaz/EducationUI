@@ -15,8 +15,8 @@ export const OAUTH_CONFIG = {
 // export const API_BASE_URL = 'https://172.16.6.113:52564/api'; // Yerel IP adresi
 // export const API_BASE_URL = 'http://10.0.2.2:52564/api';// Android emülatör için (alternatif)
 //export const API_BASE_URL = 'http://localhost:52564/api'; // iOS Simulator için
-export const API_BASE_URL='http://192.168.56.1:52563/api';
-// export const API_BASE_URL='http://192.168.1.98:52563/api';
+export const API_BASE_URL='http://192.168.56.1:52563/api'; // işyeri
+// export const API_BASE_URL='http://192.168.1.98:52563/api'; // ev
 // export const API_BASE_URL = 'https://your-production-api.com/api'; // Production için
 
 // API Endpoints - Mobile App (UI) endpoints
@@ -53,6 +53,8 @@ export const API_ENDPOINTS = {
   CONTINUE_LEARNING: '/ui/enrollments/continue-learning',
   COMPLETED_COURSES: '/ui/enrollments/completed',
   ENROLLMENT_STATUS: (courseId) => `/ui/enrollments/course/${courseId}/status`,
+  ENROLL_COURSE: (courseId) => `/ui/enrollments/enroll/${courseId}`,
+  UNENROLL_COURSE: (courseId) => `/ui/enrollments/unenroll/${courseId}`,
 
   // Categories
   CATEGORIES: '/ui/categories',
@@ -64,6 +66,13 @@ export const API_ENDPOINTS = {
   LESSON_PROGRESS: (lessonId) => `/ui/lessons/${lessonId}/progress`,
   SAVE_LESSON_PROGRESS: (lessonId) => `/ui/lessons/${lessonId}/progress`,
   COURSE_LESSONS_PROGRESS: (courseId) => `/ui/lessons/course/${courseId}/progress`,
+
+  // Lesson Favorites (Requires Auth)
+  FAVORITE_LESSONS: '/ui/lessons/favorites',
+  ADD_LESSON_FAVORITE: (lessonId) => `/ui/lessons/${lessonId}/favorite`,
+  REMOVE_LESSON_FAVORITE: (lessonId) => `/ui/lessons/${lessonId}/favorite`,
+  LESSON_FAVORITE_STATUS: (lessonId) => `/ui/lessons/${lessonId}/favorite/status`,
+  LESSON_FAVORITE_STATUSES: '/ui/lessons/favorites/status',
 
   // Orders (Requires Auth)
   CREATE_ORDER: '/ui/orders/create',

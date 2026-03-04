@@ -33,6 +33,23 @@ const getValidVideoUrl = (url) => {
     return DEFAULT_VIDEO_URL;
 };
 
+// Helper to get stream URL - calls API for signed URLs when needed
+const fetchStreamUrl = async (lessonId, fallbackUrl) => {
+    try {
+        console.log('Fetching stream URL for lesson:', lessonId);
+        const streamData = await courseService.getLessonStreamUrl(lessonId);
+        console.log('Stream URL response:', streamData);
+
+        if (streamData?.videoUrl) {
+            return streamData.videoUrl;
+        }
+        return fallbackUrl;
+    } catch (error) {
+        console.error('Failed to get stream URL:', error);
+        return fallbackUrl;
+    }
+};
+
 const VideoPlayerScreen = ({ navigation, route }) => {
     const { lesson, courseName, lessons = [] } = route.params || {};
 
@@ -49,6 +66,8 @@ const VideoPlayerScreen = ({ navigation, route }) => {
     const [hasResumed, setHasResumed] = useState(false);
     const [lessonsProgress, setLessonsProgress] = useState({});
     const [progressLoaded, setProgressLoaded] = useState(false);
+    const [actualVideoUrl, setActualVideoUrl] = useState(null); // Stream URL from API
+    const [isFavorite, setIsFavorite] = useState(false); // Favorite status
 
     // Settings / Speed
     const [settingsOpen, setSettingsOpen] = useState(false);
@@ -76,6 +95,36 @@ const VideoPlayerScreen = ({ navigation, route }) => {
     useEffect(() => {
         currentLessonRef.current = currentLesson;
     }, [currentLesson]);
+
+    // Favori durumunu yükle
+    const loadFavoriteStatus = useCallback(async (lessonId) => {
+        try {
+            const status = await courseService.getLessonFavoriteStatus(lessonId);
+            setIsFavorite(status?.isFavorite || false);
+        } catch (err) {
+            console.log('Favori durumu yüklenemedi:', err?.message || err);
+        }
+    }, []);
+
+    // Favori ekle/kaldır
+    const toggleFavorite = useCallback(async () => {
+        if (!currentLesson?.id) return;
+
+        try {
+            if (isFavorite) {
+                await courseService.removeLessonFromFavorites(currentLesson.id);
+                setIsFavorite(false);
+                showInfoToast('Favorilerden kaldırıldı', 'Favoriler');
+            } else {
+                await courseService.addLessonToFavorites(currentLesson.id);
+                setIsFavorite(true);
+                showSuccessToast('Favorilere eklendi', 'Favoriler');
+            }
+        } catch (err) {
+            showErrorToast('İşlem başarısız oldu', 'Hata');
+            console.log('Favori toggle hatası:', err);
+        }
+    }, [currentLesson?.id, isFavorite]);
 
     // Tek ders ilerlemesini yükle
     const loadLessonProgress = useCallback(async (lessonId) => {
@@ -166,12 +215,37 @@ const VideoPlayerScreen = ({ navigation, route }) => {
         }
     }, []);
 
-    const videoUrl = getValidVideoUrl(currentLesson?.videoUrl);
+    // Use actual stream URL if available, otherwise fallback to lesson's videoUrl
+    const videoUrl = getValidVideoUrl(actualVideoUrl || currentLesson?.videoUrl);
 
     const player = useVideoPlayer(videoUrl, (p) => {
         p.loop = false; // Döngü kapalı - video bitince durmalı
         p.play();
     });
+
+    // Fetch stream URL when lesson changes
+    useEffect(() => {
+        const loadStreamUrl = async () => {
+            if (!currentLesson?.id) return;
+
+            // Ders değiştiğinde önce mevcut URL'i sıfırla
+            setActualVideoUrl(null);
+            setIsLoading(true);
+
+            try {
+                // API'den stream URL al (public değilse signed URL döner)
+                const streamUrl = await fetchStreamUrl(currentLesson.id, currentLesson.videoUrl);
+                console.log('Using video URL:', streamUrl);
+                setActualVideoUrl(streamUrl);
+            } catch (err) {
+                console.error('Stream URL fetch error:', err);
+                // Hata durumunda fallback olarak lesson videoUrl kullan
+                setActualVideoUrl(currentLesson.videoUrl);
+            }
+        };
+
+        loadStreamUrl();
+    }, [currentLesson?.id]);
 
     const { isPlaying } = useEvent(player, 'playingChange', { isPlaying: player.playing });
     const { status } = useEvent(player, 'statusChange', { status: player.status });
@@ -251,8 +325,9 @@ const VideoPlayerScreen = ({ navigation, route }) => {
             setResumePosition(0);
             lastSavedTime.current = 0;
             loadLessonProgress(currentLesson.id);
+            loadFavoriteStatus(currentLesson.id);
         }
-    }, [currentLesson?.id, loadLessonProgress]);
+    }, [currentLesson?.id, loadLessonProgress, loadFavoriteStatus]);
 
     // iOS ve Android için farklı status değerleri olabilir
     // isPlaying da loading kontrolünde kullanılacak
@@ -398,19 +473,19 @@ const VideoPlayerScreen = ({ navigation, route }) => {
         };
     }, []);
 
-    // Lesson değişince source değiştir
+    // actualVideoUrl değişince video source'u güncelle
     useEffect(() => {
-        if (!player || !isMounted.current) return;
+        if (!player || !isMounted.current || !actualVideoUrl) return;
 
-        const newUrl = getValidVideoUrl(currentLesson?.videoUrl);
+        const newUrl = getValidVideoUrl(actualVideoUrl);
         try {
-            setIsLoading(true);
+            console.log('Replacing video source with:', newUrl);
             setCurrentTime(0);
             player.replace(newUrl);
         } catch (e) {
             console.log('Video replace error:', e);
         }
-    }, [currentLesson?.id]);
+    }, [actualVideoUrl]);
 
     const handleLessonComplete = async () => {
         if (!currentLesson?.id) return;
@@ -764,6 +839,16 @@ const VideoPlayerScreen = ({ navigation, route }) => {
                                         <Text style={styles.freeBadgeText}>Free</Text>
                                     </View>
                                 )}
+                                <TouchableOpacity
+                                    style={styles.favoriteButton}
+                                    onPress={toggleFavorite}
+                                >
+                                    <Ionicons
+                                        name={isFavorite ? 'heart' : 'heart-outline'}
+                                        size={24}
+                                        color={isFavorite ? '#E74C3C' : COLORS.textLight}
+                                    />
+                                </TouchableOpacity>
                             </View>
                             {currentLesson?.description && (
                                 <Text style={styles.lessonDescription}>{currentLesson.description}</Text>
@@ -1043,6 +1128,7 @@ const styles = StyleSheet.create({
     lessonTitle: { fontSize: SIZES.h3, fontWeight: 'bold', color: COLORS.text, flex: 1 },
     freeBadge: { backgroundColor: COLORS.success + '20', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4, marginLeft: 8 },
     freeBadgeText: { fontSize: 12, color: COLORS.success, fontWeight: '600' },
+    favoriteButton: { padding: 8, marginLeft: 4 },
     lessonDescription: { fontSize: SIZES.body1, color: COLORS.textLight, lineHeight: 22 },
 
     // Document button styles

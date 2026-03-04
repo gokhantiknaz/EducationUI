@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
+import { DeviceEventEmitter } from 'react-native';
 import AuthNavigator from './AuthNavigator';
 import MainNavigator from './MainNavigator';
 import CourseNavigator from './CourseNavigator';
@@ -9,9 +10,10 @@ import useNotificationStore from '../store/notificationStore';
 import Loading from '../components/Loading';
 import AppInitScreen from '../screens/AppInitScreen';
 import notificationService from '../services/notificationService';
+import { AUTH_EVENTS } from '../services/api';
 
 const RootNavigator = () => {
-  const { isAuthenticated, isLoading: authLoading, loadUser } = useAuthStore();
+  const { isAuthenticated, isLoading: authLoading, loadUser, logout } = useAuthStore();
   const { config, isInitialized, isSingleCourseApp, getDefaultCourseId } = useAppConfigStore();
   const { initializePushNotifications, addNotification, fetchNotifications } = useNotificationStore();
   const [appReady, setAppReady] = useState(false);
@@ -19,6 +21,27 @@ const RootNavigator = () => {
   const navigationRef = useRef(null);
   const notificationListener = useRef();
   const responseListener = useRef();
+
+  // Listen for forced logout events (token expired, refresh failed)
+  useEffect(() => {
+    const logoutSubscription = DeviceEventEmitter.addListener(
+      AUTH_EVENTS.LOGOUT_REQUIRED,
+      () => {
+        console.log('RootNavigator - Received logout required event');
+        // Clear auth state - this will trigger navigation to AuthNavigator
+        useAuthStore.setState({
+          user: null,
+          isAuthenticated: false,
+          isLoading: false,
+          error: null,
+        });
+      }
+    );
+
+    return () => {
+      logoutSubscription.remove();
+    };
+  }, []);
 
   // Handle app initialization complete
   const handleInitComplete = async (appConfig) => {

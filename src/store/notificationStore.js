@@ -39,6 +39,10 @@ const useNotificationStore = create((set, get) => ({
       }
       return token;
     } catch (error) {
+      // Silently ignore auth errors - user will be redirected to login
+      if (error.response?.status === 401 || error.response?.status === 404) {
+        return null;
+      }
       console.error('Failed to initialize push notifications:', error);
       set({ error: error.message });
       return null;
@@ -63,6 +67,11 @@ const useNotificationStore = create((set, get) => ({
 
       return { notifications, pagination };
     } catch (error) {
+      // Silently ignore auth errors - user will be redirected to login
+      if (error.response?.status === 401 || error.response?.status === 404) {
+        set({ isLoading: false });
+        return null;
+      }
       console.error('Error fetching notifications:', error);
       set({
         error: error.message,

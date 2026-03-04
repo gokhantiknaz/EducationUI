@@ -90,6 +90,26 @@ const QuizScreen = ({ route, navigation }) => {
     };
   }, [currentQuiz]);
 
+  // Auto-select language for CodeChallenge questions
+  useEffect(() => {
+    if (currentQuiz && currentQuiz.questions) {
+      const question = currentQuiz.questions[currentQuestionIndex];
+      if (question?.questionType === 'CodeChallenge' && !codeLanguages[question.id]) {
+        let allowedLanguages = question.allowedLanguages;
+        if (typeof allowedLanguages === 'string') {
+          try {
+            allowedLanguages = JSON.parse(allowedLanguages);
+          } catch (e) {
+            allowedLanguages = ['python'];
+          }
+        }
+        if (allowedLanguages?.length > 0) {
+          setCodeLanguage(question.id, allowedLanguages[0]);
+        }
+      }
+    }
+  }, [currentQuiz, currentQuestionIndex, codeLanguages]);
+
   // Auto-submit when time runs out
   useEffect(() => {
     if (timeRemaining === 0) {
@@ -375,7 +395,6 @@ const QuizScreen = ({ route, navigation }) => {
 
   const renderCodeChallengeQuestion = (question) => {
     const currentCode = codeSources[question.id] || question.starterCode || '';
-    const currentLanguage = codeLanguages[question.id] || (question.allowedLanguages?.[0]) || 'python';
     const submission = getCodeSubmission(question.id);
 
     // Parse allowed languages from JSON string if needed
@@ -387,6 +406,9 @@ const QuizScreen = ({ route, navigation }) => {
         allowedLanguages = ['python', 'javascript', 'csharp', 'c'];
       }
     }
+
+    // Get current or default language (useEffect handles auto-selection)
+    const currentLanguage = codeLanguages[question.id] || (allowedLanguages?.[0]) || 'python';
 
     // Get sample test cases (non-hidden)
     const sampleTestCases = (question.testCases || []).filter(tc => !tc.isHidden);

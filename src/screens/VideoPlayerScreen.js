@@ -46,6 +46,11 @@ const fetchStreamUrl = async (lessonId, fallbackUrl) => {
         return fallbackUrl;
     } catch (error) {
         console.error('Failed to get stream URL:', error);
+        // Erişim hatası ise fallback yapma - hatayı fırlat
+        const errorMessage = error?.message || error?.data?.message || '';
+        if (errorMessage.includes('erişim') || errorMessage.includes('izin') || errorMessage.includes('kayıtlı')) {
+            throw error;
+        }
         return fallbackUrl;
     }
 };
@@ -212,6 +217,11 @@ const VideoPlayerScreen = ({ navigation, route }) => {
             }));
         } catch (err) {
             console.log('Progress kaydedilemedi:', err);
+            const errorMessage = err?.message || err?.data?.message || '';
+            // Erişim hatası ise kullanıcıya bildir (sadece bir kez)
+            if ((errorMessage.includes('erişim') || errorMessage.includes('kayıtlı')) && lastSavedTime.current === 0) {
+                showErrorToast('İlerleme kaydedilemedi. Kursa kayıtlı değilsiniz.', 'Uyarı');
+            }
         }
     }, []);
 
@@ -239,13 +249,20 @@ const VideoPlayerScreen = ({ navigation, route }) => {
                 setActualVideoUrl(streamUrl);
             } catch (err) {
                 console.error('Stream URL fetch error:', err);
-                // Hata durumunda fallback olarak lesson videoUrl kullan
+                const errorMessage = err?.message || err?.data?.message || '';
+                // Erişim hatası ise kullanıcıya bildir ve geri dön
+                if (errorMessage.includes('erişim') || errorMessage.includes('izin') || errorMessage.includes('kayıtlı')) {
+                    showErrorToast('Bu derse erişim izniniz yok. Kursu satın almanız gerekiyor.', 'Erişim Engellendi');
+                    navigation.goBack();
+                    return;
+                }
+                // Diğer hatalarda fallback olarak lesson videoUrl kullan
                 setActualVideoUrl(currentLesson.videoUrl);
             }
         };
 
         loadStreamUrl();
-    }, [currentLesson?.id]);
+    }, [currentLesson?.id, navigation]);
 
     const { isPlaying } = useEvent(player, 'playingChange', { isPlaying: player.playing });
     const { status } = useEvent(player, 'statusChange', { status: player.status });

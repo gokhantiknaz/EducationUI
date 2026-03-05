@@ -1,6 +1,6 @@
 // Multi-tenant App ID - Her build için farklı APP_ID kullanılır
-export const APP_ID = process.env.EXPO_PUBLIC_APP_ID || 'com.oakacademy.ai';
-
+//export const APP_ID = process.env.EXPO_PUBLIC_APP_ID || 'com.oakacademy.ai';
+export const APP_ID = process.env.EXPO_PUBLIC_APP_ID || 'com.oakacademy.cyber';
 // OAuth Client IDs - Google Cloud Console ve LinkedIn Developer Portal'dan alınacak
 export const OAUTH_CONFIG = {
   GOOGLE_CLIENT_ID: process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID || '',

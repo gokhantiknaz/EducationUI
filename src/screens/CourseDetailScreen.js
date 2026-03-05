@@ -227,6 +227,7 @@ const CourseDetailScreen = ({ route, navigation }) => {
   }
 
   const isEnrolled = enrollmentStatus?.isEnrolled;
+  const isFreeCourse = course.price === 0 || course.price === null;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -335,7 +336,8 @@ const CourseDetailScreen = ({ route, navigation }) => {
                           key={lesson.id || lessonIndex}
                           style={styles.lessonItem}
                           onPress={() => {
-                            if (isEnrolled || lesson.isFree) {
+                            // Erişim kontrolü: Kayıtlı veya ücretsiz ders veya ücretsiz kurs
+                            if (isEnrolled || lesson.isFree || isFreeCourse) {
                               handleLessonPress(lessonWithSection, allLessons);
                             } else {
                               handleLockedLessonPress();
@@ -390,7 +392,7 @@ const CourseDetailScreen = ({ route, navigation }) => {
                               </View>
                             )}
                           </View>
-                          {isEnrolled || lesson.isFree ? (
+                          {isEnrolled || lesson.isFree || isFreeCourse ? (
                             <Text style={styles.playIcon}>{isCompleted ? '✓' : '▶'}</Text>
                           ) : (
                             <Text style={styles.lockIcon}>🔒</Text>

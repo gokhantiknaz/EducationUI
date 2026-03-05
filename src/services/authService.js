@@ -1,13 +1,28 @@
 import apiClient from './api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { API_ENDPOINTS, STORAGE_KEYS } from '../constants/config';
+import { API_ENDPOINTS, STORAGE_KEYS, APP_ID } from '../constants/config';
 import axios from "axios";
+import * as Device from 'expo-device';
+import Constants from 'expo-constants';
+import { Platform } from 'react-native';
+
+// Get device info for app tracking
+const getDeviceInfo = () => ({
+  appId: APP_ID,
+  deviceModel: Device.modelName || Device.deviceName || 'Unknown',
+  deviceOS: `${Platform.OS} ${Device.osVersion || Platform.Version}`,
+  appVersion: Constants.expoConfig?.version || Constants.manifest?.version || '1.0.0',
+});
 
 class AuthService {
   // User registration
   async register(userData) {
     try {
-      const response = await apiClient.post(API_ENDPOINTS.REGISTER, userData);
+      const deviceInfo = getDeviceInfo();
+      const response = await apiClient.post(API_ENDPOINTS.REGISTER, {
+        ...userData,
+        ...deviceInfo,
+      });
 
       // Backend response format: { success: true, data: { accessToken, refreshToken, user } }
       if (response.data.success && response.data.data) {
@@ -25,6 +40,7 @@ class AuthService {
   // Social login (Google, LinkedIn)
   async socialLogin(provider, userData) {
     try {
+      const deviceInfo = getDeviceInfo();
       const payload = {
         provider,
         idToken: userData.idToken || '',
@@ -34,6 +50,7 @@ class AuthService {
         lastName: userData.lastName || userData.familyName,
         profileImageUrl: userData.picture || userData.profileImageUrl,
         externalUserId: userData.id || userData.sub,
+        ...deviceInfo,
       };
 
       const response = await apiClient.post(API_ENDPOINTS.SOCIAL_LOGIN, payload);
@@ -53,9 +70,11 @@ class AuthService {
   // User login
   async login(email, password) {
     try {
+      const deviceInfo = getDeviceInfo();
       const response = await apiClient.post(API_ENDPOINTS.LOGIN, {
         email,
         password,
+        ...deviceInfo,
       });
 
       console.log('Login response:', response.data);

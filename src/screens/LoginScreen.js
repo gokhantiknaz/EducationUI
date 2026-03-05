@@ -127,7 +127,7 @@ const LoginScreen = ({ navigation }) => {
             </View>
             <Text style={styles.title}>Welcome</Text>
             <Text style={styles.subtitle}>
-              Sign in to the education platform
+              Sign in to OAK ACADEMY
             </Text>
           </View>
 
